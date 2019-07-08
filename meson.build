@@ -223,7 +223,7 @@ if _vulkan_drivers.contains('auto')
     if host_machine.cpu_family().startswith('x86')
       _vulkan_drivers = ['amd', 'intel']
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
-      _vulkan_drivers = []
+      _vulkan_drivers = ['broadcom']
     else
       error('Unknown architecture @0@. Please pass -Dvulkan-drivers to set driver options. Patches gladly accepted to fix this.'.format(
             host_machine.cpu_family()))
@@ -239,11 +239,15 @@ endif
 
 with_intel_vk = _vulkan_drivers.contains('intel')
 with_amd_vk = _vulkan_drivers.contains('amd')
+with_broadcom_vk = _vulkan_drivers.contains('broadcom')
 with_freedreno_vk = _vulkan_drivers.contains('freedreno')
 with_any_vk = _vulkan_drivers.length() != 0 and _vulkan_drivers != ['']
 
 if with_freedreno_vk and get_option('I-love-half-baked-turnips') != true
   error('Cannot enable freedreno vulkan driver')
+endif
+if with_broadcom_vk and get_option('I-love-half-baked-turnips') != true
+  error('Cannot enable broadcom vulkan driver')
 endif
 
 if with_dri_swrast and (with_gallium_softpipe or with_gallium_swr)
