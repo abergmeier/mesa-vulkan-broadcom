@@ -1,0 +1,73 @@
+# Copyright © 2019 Andreas Bergmeier
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+libv3dvk_files = files(
+  'common.h',
+  'device.c',
+  'device.h',
+  'icd.c',
+  'instance.c',
+  'instance.h',
+  'ioctl.h',
+  'valgrind.h',
+  'wsi.c',
+)
+
+v3dvk_deps = [
+  dep_libdrm,
+  dep_valgrind,
+  idep_vulkan_util_headers,
+]
+v3dvk_flags = [
+  c_vis_args,
+  no_override_init_args,
+]
+
+libv3dvk_common = static_library(
+  'v3dvk_common',
+  [
+    libv3dvk_files,
+  ],
+  include_directories : [
+    inc_common, inc_broadcom, inc_include,
+    inc_vulkan_wsi,
+  ],
+  c_args : v3dvk_flags,
+  dependencies : v3dvk_deps,
+)
+
+libvulkan_broadcom = shared_library(
+  'vulkan_broadcom',
+  [],
+  include_directories : [
+    inc_common, inc_broadcom, inc_common, inc_src,
+  ],
+  link_whole : [libv3dvk_common],
+  link_with : [
+    libbroadcom_dev, libcompiler,
+    libvulkan_wsi, libmesa_util,
+  ],
+  dependencies : [
+    dep_thread, dep_dl, dep_m, v3dvk_deps, idep_vulkan_util,
+  ],
+  c_args : v3dvk_flags,
+  link_args : ['-Wl,--build-id=sha1', ld_args_bsymbolic, ld_args_gc_sections],
+  install : true,
+)

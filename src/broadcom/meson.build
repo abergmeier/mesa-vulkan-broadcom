@@ -66,3 +66,7 @@ libbroadcom_v3d = static_library(
   build_by_default : false,
   dependencies: [dep_valgrind, dep_thread],
 )
+
+if with_broadcom_vk
+  subdir('vulkan')
+endif
