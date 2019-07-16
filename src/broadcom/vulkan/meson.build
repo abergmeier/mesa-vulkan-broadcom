@@ -18,6 +18,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+v3dvk_extensions_py = files('v3dvk_extensions.py')
+
+v3dvk_entrypoints = custom_target(
+  'v3dvk_entrypoints.[ch]',
+  input : ['v3dvk_entrypoints_gen.py', vk_api_xml],
+  output : ['v3dvk_entrypoints.h', 'v3dvk_entrypoints.c'],
+  command : [
+    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
+    '--outdir', meson.current_build_dir(),
+  ],
+  depend_files : v3dvk_extensions_py,
+)
+
 libv3dvk_files = files(
   'common.h',
   'device.c',
@@ -27,6 +40,7 @@ libv3dvk_files = files(
   'instance.h',
   'ioctl.h',
   'valgrind.h',
+  'v3dvk_macro.h',
   'wsi.c',
 )
 
@@ -43,6 +57,7 @@ v3dvk_flags = [
 libv3dvk_common = static_library(
   'v3dvk_common',
   [
+    v3dvk_entrypoints,
     libv3dvk_files,
   ],
   include_directories : [

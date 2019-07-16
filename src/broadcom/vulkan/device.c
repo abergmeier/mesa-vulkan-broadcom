@@ -28,8 +28,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include <xf86drm.h>
-
 #include <drm-uapi/v3d_drm.h>
 
 #include "common.h"
@@ -39,6 +37,7 @@
 #include <util/build_id.h>
 #include <util/macros.h>
 #include <util/mesa-sha1.h>
+#include <util/ralloc.h>
 #include "wsi.h"
 
 static uint32_t
@@ -140,7 +139,7 @@ v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
    return VK_SUCCESS;
 }
 
-static VkResult
+VkResult
 v3dvk_physical_device_init(struct v3dvk_physical_device *device,
                          struct v3dvk_instance *instance,
                          drmDevicePtr drm_device)
@@ -230,5 +229,8 @@ fail:
 void
 v3dvk_physical_device_finish(struct v3dvk_physical_device *device)
 {
-	// TODO: implement
+   v3dvk_finish_wsi(device);
+   close(device->local_fd);
+   if (device->master_fd >= 0)
+      close(device->master_fd);
 }

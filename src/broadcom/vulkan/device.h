@@ -4,6 +4,8 @@
 #include <vulkan/vk_icd.h>
 #include <vulkan/vulkan.h>
 
+#include <xf86drm.h>
+
 #include "dev/gen_device_info.h"
 
 struct v3dvk_physical_device {
@@ -77,6 +79,11 @@ struct v3dvk_physical_device {
     int                                         local_fd;
     int                                         master_fd;
 };
+
+VkResult
+v3dvk_physical_device_init(struct v3dvk_physical_device *device,
+                         struct v3dvk_instance *instance,
+                         drmDevicePtr drm_device);
 
 void
 v3dvk_physical_device_finish(struct v3dvk_physical_device *device);
