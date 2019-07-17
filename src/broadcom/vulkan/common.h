@@ -36,16 +36,16 @@ VkResult __vk_errorf(struct v3dvk_instance *instance, const void *object,
 #define vk_errorf(instance, obj, error, format, ...) error
 #endif
 
-#define ANV_DEFINE_HANDLE_CASTS(__v3dvk_type, __VkType)                      \
+#define V3DVK_DEFINE_HANDLE_CASTS(__v3dvk_type, __VkType)                  \
                                                                            \
-   static inline struct __v3dvk_type *                                       \
-   __v3dvk_type ## _from_handle(__VkType _handle)                            \
+   static inline struct __v3dvk_type *                                     \
+   __v3dvk_type ## _from_handle(__VkType _handle)                          \
    {                                                                       \
-      return (struct __v3dvk_type *) _handle;                                \
+      return (struct __v3dvk_type *) _handle;                              \
    }                                                                       \
                                                                            \
    static inline __VkType                                                  \
-   __v3dvk_type ## _to_handle(struct __v3dvk_type *_obj)                       \
+   __v3dvk_type ## _to_handle(struct __v3dvk_type *_obj)                   \
    {                                                                       \
       return (__VkType) _obj;                                              \
    }
@@ -53,8 +53,8 @@ VkResult __vk_errorf(struct v3dvk_instance *instance, const void *object,
 #define V3DVK_FROM_HANDLE(__v3dvk_type, __name, __handle) \
    struct __v3dvk_type *__name = __v3dvk_type ## _from_handle(__handle)
 
-ANV_DEFINE_HANDLE_CASTS(v3dvk_device, VkDevice)
-ANV_DEFINE_HANDLE_CASTS(v3dvk_instance, VkInstance)
-ANV_DEFINE_HANDLE_CASTS(v3dvk_physical_device, VkPhysicalDevice)
+V3DVK_DEFINE_HANDLE_CASTS(v3dvk_device, VkDevice)
+V3DVK_DEFINE_HANDLE_CASTS(v3dvk_instance, VkInstance)
+V3DVK_DEFINE_HANDLE_CASTS(v3dvk_physical_device, VkPhysicalDevice)
 
 #endif // V3DVK_COMMON_H
