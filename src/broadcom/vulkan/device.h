@@ -6,13 +6,12 @@
 
 #include <xf86drm.h>
 
-#include "dev/gen_device_info.h"
+#include "common/v3d_device_info.h"
 
 struct v3dvk_physical_device {
     VK_LOADER_DATA                              _loader_data;
 
     struct v3dvk_instance *                     instance;
-    uint32_t                                    chipset_id;
     bool                                        no_hw;
     char                                        path[20];
     const char *                                name;
@@ -22,7 +21,7 @@ struct v3dvk_physical_device {
        uint8_t                                  device;
        uint8_t                                  function;
     }                                           pci_info;
-    struct gen_device_info                      info;
+    struct v3d_device_info                      info;
 #if 0
     /** Amount of "GPU memory" we want to advertise
      *

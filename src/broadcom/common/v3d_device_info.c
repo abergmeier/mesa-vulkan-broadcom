@@ -77,3 +77,17 @@ v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun drm_i
 
     return true;
 }
+
+const char *
+v3d_get_device_name(const struct v3d_device_info* di)
+{
+   // TODO: Find a better way of identifying hardware
+   const uint8_t devid = di->ver;
+   switch (devid) {
+#undef CHIPSET
+#define CHIPSET(id, family, name) case id: return name;
+   CHIPSET(42, NULL, "VideoCore 4.2")
+   default:
+      return NULL;
+   }
+}

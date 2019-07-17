@@ -46,4 +46,6 @@ struct v3d_device_info {
 bool
 v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun fun);
 
+const char *v3d_get_device_name(const struct v3d_device_info* devinfo);
+
 #endif

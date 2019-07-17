@@ -32,42 +32,12 @@
 
 #include "common.h"
 #include "device.h"
-#include "dev/gen_device_info.h"
 #include "ioctl.h"
 #include <util/build_id.h>
 #include <util/macros.h>
 #include <util/mesa-sha1.h>
 #include <util/ralloc.h>
 #include "wsi.h"
-
-static uint32_t
-v3d_get_version(int fd)
-{
-        struct drm_v3d_get_param ident0 = {
-                .param = DRM_V3D_PARAM_V3D_CORE0_IDENT0,
-        };
-        struct drm_v3d_get_param ident1 = {
-                .param = DRM_V3D_PARAM_V3D_CORE0_IDENT1,
-        };
-        int ret;
-
-        ret = v3dvk_ioctl(fd, DRM_IOCTL_V3D_GET_PARAM, &ident0);
-        if (ret != 0) {
-                fprintf(stderr, "Couldn't get V3D core IDENT0: %s\n",
-                        strerror(errno));
-                return false;
-        }
-        ret = v3dvk_ioctl(fd, DRM_IOCTL_V3D_GET_PARAM, &ident1);
-        if (ret != 0) {
-                fprintf(stderr, "Couldn't get V3D core IDENT1: %s\n",
-                        strerror(errno));
-                return false;
-        }
-
-        uint32_t major = (ident0.value >> 24) & 0xff;
-        uint32_t minor = (ident1.value >> 0) & 0xf;
-        return major * (uint32_t)10 + minor;
-}
 
 static VkResult
 v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
@@ -98,8 +68,12 @@ v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
     */
    _mesa_sha1_init(&sha1_ctx);
    _mesa_sha1_update(&sha1_ctx, build_id_data(note), build_id_len);
-   _mesa_sha1_update(&sha1_ctx, &device->chipset_id,
-                     sizeof(device->chipset_id));
+   _mesa_sha1_update(&sha1_ctx, &device->info.ver,
+                     sizeof(device->info.ver));
+   _mesa_sha1_update(&sha1_ctx, &device->info.vpm_size,
+                     sizeof(device->info.vpm_size));
+   _mesa_sha1_update(&sha1_ctx, &device->info.qpu_count,
+                     sizeof(device->info.qpu_count));
 #if 0
    _mesa_sha1_update(&sha1_ctx, &device->always_use_bindless,
                      sizeof(device->always_use_bindless));
@@ -127,8 +101,12 @@ v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
     * some bits of ISL info to ensure that this is safe.
     */
    _mesa_sha1_init(&sha1_ctx);
-   _mesa_sha1_update(&sha1_ctx, &device->chipset_id,
-                     sizeof(device->chipset_id));
+   _mesa_sha1_update(&sha1_ctx, &device->info.ver,
+                     sizeof(device->info.ver));
+   _mesa_sha1_update(&sha1_ctx, &device->info.vpm_size,
+                     sizeof(device->info.vpm_size));
+   _mesa_sha1_update(&sha1_ctx, &device->info.qpu_count,
+                     sizeof(device->info.qpu_count));
 #if 0
    _mesa_sha1_update(&sha1_ctx, &device->isl_dev.has_bit6_swizzling,
                      sizeof(device->isl_dev.has_bit6_swizzling));
@@ -160,8 +138,7 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
    assert(strlen(path) < ARRAY_SIZE(device->path));
    snprintf(device->path, ARRAY_SIZE(device->path), "%s", path);
 
-   device->chipset_id = v3d_get_version(fd);
-   if (!device->chipset_id) {
+   if (!v3d_get_device_info(fd, &device->info, drmIoctl)) {
       result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
       goto fail;
    }
@@ -171,8 +148,8 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
    device->pci_info.device = drm_device->businfo.pci->dev;
    device->pci_info.function = drm_device->businfo.pci->func;
 
-   device->name = gen_get_device_name(device->chipset_id);
-   if (!gen_get_device_info(device->chipset_id, &device->info)) {
+   device->name = v3d_get_device_name(&device->info);
+   if (!device->name) {
       result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
       goto fail;
    }

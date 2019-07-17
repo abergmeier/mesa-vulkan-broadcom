@@ -21,7 +21,6 @@
 inc_broadcom = include_directories('.', 'cle')
 
 subdir('cle')
-subdir('dev')
 
 v3d_versions = ['33', '41', '42']
 v3d_libs = []

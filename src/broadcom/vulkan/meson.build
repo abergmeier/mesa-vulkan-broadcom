@@ -76,7 +76,7 @@ libvulkan_broadcom = shared_library(
   ],
   link_whole : [libv3dvk_common],
   link_with : [
-    libbroadcom_dev, libcompiler, libbroadcom_cle,
+    libcompiler, libbroadcom_cle, libbroadcom_v3d,
     libvulkan_wsi, libmesa_util,
   ],
   dependencies : [
