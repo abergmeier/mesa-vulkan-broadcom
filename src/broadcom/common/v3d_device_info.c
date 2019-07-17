@@ -86,6 +86,8 @@ v3d_get_device_name(const struct v3d_device_info* di)
    switch (devid) {
 #undef CHIPSET
 #define CHIPSET(id, family, name) case id: return name;
+   CHIPSET(33, NULL, "VideoCore 3.3")
+   CHIPSET(41, NULL, "VideoCore 4.1")
    CHIPSET(42, NULL, "VideoCore 4.2")
    default:
       return NULL;
