@@ -31,6 +31,17 @@ v3dvk_entrypoints = custom_target(
   depend_files : v3dvk_extensions_py,
 )
 
+v3dvk_extensions_h = custom_target(
+  'v3dvk_extensions.h',
+  input : ['v3dvk_extensions_gen.py', vk_api_xml],
+  output : 'v3dvk_extensions.h',
+  command : [
+    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
+    '--out-h', '@OUTPUT@',
+  ],
+  depend_files : v3dvk_extensions_py,
+)
+
 libv3dvk_files = files(
   'common.h',
   'device.c',
@@ -57,7 +68,7 @@ v3dvk_flags = [
 libv3dvk_common = static_library(
   'v3dvk_common',
   [
-    v3dvk_entrypoints,
+    v3dvk_entrypoints, v3dvk_extensions_h,
     libv3dvk_files,
   ],
   include_directories : [
@@ -70,7 +81,7 @@ libv3dvk_common = static_library(
 
 libvulkan_broadcom = shared_library(
   'vulkan_broadcom',
-  [],
+  [v3dvk_extensions_h],
   include_directories : [
     inc_common, inc_broadcom, inc_common, inc_src,
   ],

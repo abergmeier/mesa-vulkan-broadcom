@@ -38,11 +38,60 @@ from v3dvk_extensions import VkVersion, MAX_API_VERSION, EXTENSIONS
 # experimentally.
 
 LAYERS = [
+    'v3dvk',
     'v3d42',
 ]
 
 TEMPLATE_H = Template("""\
 /* This file generated from ${filename}, don't edit directly. */
+
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_broadcom.h>
+#include "common/v3d_device_info.h"
+#include "v3dvk_extensions.h"
+
+struct v3dvk_instance_dispatch_table {
+   union {
+      void *entrypoints[${len(instance_entrypoints)}];
+      struct {
+      % for e in instance_entrypoints:
+        % if e.guard is not None:
+#ifdef ${e.guard}
+          PFN_${e.name} ${e.name};
+#else
+          void *${e.name};
+# endif
+        % else:
+          PFN_${e.name} ${e.name};
+        % endif
+      % endfor
+      };
+   };
+};
+
+struct v3dvk_device_dispatch_table {
+   union {
+      void *entrypoints[${len(device_entrypoints)}];
+      struct {
+      % for e in device_entrypoints:
+        % if e.guard is not None:
+#ifdef ${e.guard}
+          PFN_${e.name} ${e.name};
+#else
+          void *${e.name};
+# endif
+        % else:
+          PFN_${e.name} ${e.name};
+        % endif
+      % endfor
+      };
+   };
+};
+
+extern const struct v3dvk_instance_dispatch_table v3dvk_instance_dispatch_table;
+%for layer in LAYERS:
+extern const struct v3dvk_device_dispatch_table ${layer}_device_dispatch_table;
+%endfor
 
 % for e in instance_entrypoints:
   % if e.alias:
@@ -71,6 +120,21 @@ TEMPLATE_H = Template("""\
 #endif // ${e.guard}
   % endif
 % endfor
+// TODO: Move statics to sep. header
+int v3dvk_get_instance_entrypoint_index(const char *name);
+int v3dvk_get_device_entrypoint_index(const char *name);
+
+bool
+v3dvk_instance_entrypoint_is_enabled(int index, uint32_t core_version,
+                                     const struct v3dvk_instance_extension_table *instance);
+
+bool
+v3dvk_device_entrypoint_is_enabled(int index, uint32_t core_version,
+                                   const struct v3dvk_instance_extension_table *instance,
+                                   const struct v3dvk_device_extension_table *device);
+
+void *v3dvk_lookup_entrypoint(const struct v3d_device_info *devinfo,
+                              const char *name);
 """, output_encoding='utf-8')
 
 TEMPLATE_C = Template(u"""\
@@ -98,7 +162,258 @@ TEMPLATE_C = Template(u"""\
  */
 
 /* This file generated from ${filename}, don't edit directly. */
-""", output_encoding='utf-8')
+#include <string.h>
+#include "util/macros.h"
+#include "v3dvk_entrypoints.h"
+
+struct string_map_entry {
+   uint32_t name;
+   uint32_t hash;
+   uint32_t num;
+};
+
+/* We use a big string constant to avoid lots of reloctions from the entry
+ * point table to lots of little strings. The entries in the entry point table
+ * store the index into this big string.
+ */
+
+<%def name="strmap(strmap, prefix)">
+static const char ${prefix}_strings[] =
+% for s in strmap.sorted_strings:
+    "${s.string}\\0"
+% endfor
+;
+
+static const struct string_map_entry ${prefix}_string_map_entries[] = {
+% for s in strmap.sorted_strings:
+    { ${s.offset}, ${'{:0=#8x}'.format(s.hash)}, ${s.num} }, /* ${s.string} */
+% endfor
+};
+
+/* Hash table stats:
+ * size ${len(strmap.sorted_strings)} entries
+ * collisions entries:
+% for i in range(10):
+ *     ${i}${'+' if i == 9 else ' '}     ${strmap.collisions[i]}
+% endfor
+ */
+
+#define none 0xffff
+static const uint16_t ${prefix}_string_map[${strmap.hash_size}] = {
+% for e in strmap.mapping:
+    ${ '{:0=#6x}'.format(e) if e >= 0 else 'none' },
+% endfor
+};
+
+static int
+${prefix}_string_map_lookup(const char *str)
+{
+    static const uint32_t prime_factor = ${strmap.prime_factor};
+    static const uint32_t prime_step = ${strmap.prime_step};
+    const struct string_map_entry *e;
+    uint32_t hash, h;
+    uint16_t i;
+    const char *p;
+
+    hash = 0;
+    for (p = str; *p; p++)
+        hash = hash * prime_factor + *p;
+
+    h = hash;
+    while (1) {
+        i = ${prefix}_string_map[h & ${strmap.hash_mask}];
+        if (i == none)
+           return -1;
+        e = &${prefix}_string_map_entries[i];
+        if (e->hash == hash && strcmp(str, ${prefix}_strings + e->name) == 0)
+            return e->num;
+        h += prime_step;
+    }
+
+    return -1;
+}
+</%def>
+
+${strmap(instance_strmap, 'instance')}
+${strmap(device_strmap, 'device')}
+
+/* Weak aliases for all potential implementations. These will resolve to
+ * NULL if they're not defined, which lets the resolve_entrypoint() function
+ * either pick the correct entry point.
+ */
+
+% for e in instance_entrypoints:
+  % if e.alias:
+    <% continue %>
+  % endif
+  % if e.guard is not None:
+#ifdef ${e.guard}
+  % endif
+  ${e.return_type} ${e.prefixed_name('v3dvk')}(${e.decl_params()}) __attribute__ ((weak));
+  % if e.guard is not None:
+#endif // ${e.guard}
+  % endif
+% endfor
+
+const struct v3dvk_instance_dispatch_table v3dvk_instance_dispatch_table = {
+% for e in instance_entrypoints:
+  % if e.guard is not None:
+#ifdef ${e.guard}
+  % endif
+  .${e.name} = ${e.prefixed_name('v3dvk')},
+  % if e.guard is not None:
+#endif // ${e.guard}
+  % endif
+% endfor
+};
+
+% for layer in LAYERS:
+  % for e in device_entrypoints:
+    % if e.alias:
+      <% continue %>
+    % endif
+    % if e.guard is not None:
+#ifdef ${e.guard}
+    % endif
+    % if layer == 'v3dvk':
+      ${e.return_type} __attribute__ ((weak))
+      ${e.prefixed_name('v3dvk')}(${e.decl_params()})
+      {
+        assert(!"Unhandled device child trampoline case: ${e.params[0].type}");
+      }
+    % else:
+      ${e.return_type} ${e.prefixed_name(layer)}(${e.decl_params()}) __attribute__ ((weak));
+    % endif
+    % if e.guard is not None:
+#endif // ${e.guard}
+    % endif
+  % endfor
+
+  const struct v3dvk_device_dispatch_table ${layer}_device_dispatch_table = {
+  % for e in device_entrypoints:
+    % if e.guard is not None:
+#ifdef ${e.guard}
+    % endif
+    .${e.name} = ${e.prefixed_name(layer)},
+    % if e.guard is not None:
+#endif // ${e.guard}
+    % endif
+  % endfor
+  };
+% endfor
+
+
+/** Return true if the core version or extension in which the given entrypoint
+ * is defined is enabled.
+ *
+ * If device is NULL, all device extensions are considered enabled.
+ */
+bool
+v3dvk_instance_entrypoint_is_enabled(int index, uint32_t core_version,
+                                   const struct v3dvk_instance_extension_table *instance)
+{
+   switch (index) {
+% for e in instance_entrypoints:
+   case ${e.num}:
+      /* ${e.name} */
+   % if e.core_version:
+      return ${e.core_version.c_vk_version()} <= core_version;
+   % elif e.extensions:
+     % for ext in e.extensions:
+        % if ext.type == 'instance':
+      if (instance->${ext.name[3:]}) return true;
+        % else:
+      /* All device extensions are considered enabled at the instance level */
+      return true;
+        % endif
+     % endfor
+      return false;
+   % else:
+      return true;
+   % endif
+% endfor
+   default:
+      return false;
+   }
+}
+
+/** Return true if the core version or extension in which the given entrypoint
+ * is defined is enabled.
+ *
+ * If device is NULL, all device extensions are considered enabled.
+ */
+bool
+v3dvk_device_entrypoint_is_enabled(int index, uint32_t core_version,
+                                 const struct v3dvk_instance_extension_table *instance,
+                                 const struct v3dvk_device_extension_table *device)
+{
+   switch (index) {
+% for e in device_entrypoints:
+   case ${e.num}:
+      /* ${e.name} */
+   % if e.core_version:
+      return ${e.core_version.c_vk_version()} <= core_version;
+   % elif e.extensions:
+     % for ext in e.extensions:
+        % if ext.type == 'instance':
+           <% assert False %>
+        % else:
+      if (!device || device->${ext.name[3:]}) return true;
+        % endif
+     % endfor
+      return false;
+   % else:
+      return true;
+   % endif
+% endfor
+   default:
+      return false;
+   }
+}
+
+int
+v3dvk_get_instance_entrypoint_index(const char *name)
+{
+   return instance_string_map_lookup(name);
+}
+
+int
+v3dvk_get_device_entrypoint_index(const char *name)
+{
+   return device_string_map_lookup(name);
+}
+
+static void * __attribute__ ((noinline))
+v3dvk_resolve_device_entrypoint(const struct v3d_device_info *devinfo, uint32_t index)
+{
+   const struct v3dvk_device_dispatch_table *genX_table;
+   switch (devinfo->ver) {
+   case 42:
+      genX_table = &v3d42_device_dispatch_table;
+      break;
+   default:
+      unreachable("unsupported gen\\n");
+   }
+
+   if (genX_table->entrypoints[index])
+      return genX_table->entrypoints[index];
+   else
+      return v3dvk_device_dispatch_table.entrypoints[index];
+}
+
+void *
+v3dvk_lookup_entrypoint(const struct v3d_device_info *devinfo, const char *name)
+{
+   int idx = v3dvk_get_instance_entrypoint_index(name);
+   if (idx >= 0)
+      return v3dvk_instance_dispatch_table.entrypoints[idx];
+
+   idx = v3dvk_get_device_entrypoint_index(name);
+   if (idx >= 0)
+      return v3dvk_resolve_device_entrypoint(devinfo, idx);
+
+   return NULL;
+}""", output_encoding='utf-8')
 
 U32_MASK = 2**32 - 1
 
@@ -291,9 +606,9 @@ def main():
         doc = et.parse(filename)
         entrypoints += get_entrypoints(doc, get_entrypoints_defines(doc))
 
-    # Manually add CreateDmaBufImageINTEL for which we don't have an extension
+    # Manually add CreateDmaBufImageBROADCOM for which we don't have an extension
     # defined.
-    entrypoints.append(Entrypoint('vkCreateDmaBufImageINTEL', 'VkResult', [
+    entrypoints.append(Entrypoint('vkCreateDmaBufImageBROADCOM', 'VkResult', [
         EntrypointParam('VkDevice', 'device', 'VkDevice device'),
         EntrypointParam('VkDmaBufImageCreateInfo', 'pCreateInfo',
                         'const VkDmaBufImageCreateInfo* pCreateInfo'),

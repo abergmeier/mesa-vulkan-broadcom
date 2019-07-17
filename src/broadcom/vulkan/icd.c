@@ -5,7 +5,6 @@
 #include "util/macros.h"
 #include "instance.h"
 
-static
 PFN_vkVoidFunction v3dvk_GetInstanceProcAddr(
     VkInstance                                  _instance,
     const char*                                 pName)

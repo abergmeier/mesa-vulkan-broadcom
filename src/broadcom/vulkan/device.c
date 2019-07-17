@@ -224,3 +224,19 @@ v3dvk_physical_device_finish(struct v3dvk_physical_device *device)
    if (device->master_fd >= 0)
       close(device->master_fd);
 }
+
+PFN_vkVoidFunction v3dvk_GetDeviceProcAddr(
+    VkDevice                                    _device,
+    const char*                                 pName)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+
+   if (!device || !pName)
+      return NULL;
+
+   int idx = v3dvk_get_device_entrypoint_index(pName);
+   if (idx < 0)
+      return NULL;
+
+   return device->dispatch.entrypoints[idx];
+}

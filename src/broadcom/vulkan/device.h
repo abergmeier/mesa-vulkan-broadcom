@@ -8,6 +8,8 @@
 
 #include "common/v3d_device_info.h"
 
+#include "v3dvk_entrypoints.h"
+
 struct v3dvk_physical_device {
     VK_LOADER_DATA                              _loader_data;
 
@@ -86,5 +88,15 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
 
 void
 v3dvk_physical_device_finish(struct v3dvk_physical_device *device);
+
+struct v3dvk_device {
+    VK_LOADER_DATA                              _loader_data;
+
+    VkAllocationCallbacks                       alloc;
+
+    struct v3dvk_instance *                     instance;
+    struct v3d_device_info                      info;
+    struct v3dvk_device_dispatch_table          dispatch;
+};
 
 #endif // V3DVK_DEVICE_H

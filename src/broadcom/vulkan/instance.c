@@ -10,7 +10,6 @@
 #include "valgrind.h"
 #include <xf86drm.h>
 #include <vulkan/vulkan_broadcom.h>
-#include "v3dvk_entrypoints.h"
 #include "v3dvk_macro.h"
 #include "vulkan/util/vk_util.h"
 
