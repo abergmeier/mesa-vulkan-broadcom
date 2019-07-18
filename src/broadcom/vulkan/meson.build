@@ -42,6 +42,17 @@ v3dvk_extensions_h = custom_target(
   depend_files : v3dvk_extensions_py,
 )
 
+v3dvk_extensions_c = custom_target(
+  'v3dvk_extensions.c',
+  input : ['v3dvk_extensions_gen.py', vk_api_xml],
+  output : 'v3dvk_extensions.c',
+  command : [
+    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
+    '--out-c', '@OUTPUT@',
+  ],
+  depend_files : v3dvk_extensions_py,
+)
+
 libv3dvk_files = files(
   'common.h',
   'device.c',
@@ -68,7 +79,7 @@ v3dvk_flags = [
 libv3dvk_common = static_library(
   'v3dvk_common',
   [
-    v3dvk_entrypoints, v3dvk_extensions_h,
+    v3dvk_entrypoints, v3dvk_extensions_c, v3dvk_extensions_h,
     libv3dvk_files,
   ],
   include_directories : [

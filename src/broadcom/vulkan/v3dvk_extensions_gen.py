@@ -89,6 +89,20 @@ struct v3dvk_device_extension_table {
 #endif /* V3DVK_EXTENSIONS_H */
 """)
 
+_TEMPLATE_C = Template(COPYRIGHT + """
+#include "v3dvk_entrypoints.h"
+#include "vk_util.h"
+
+static const uint32_t MAX_API_VERSION = ${MAX_API_VERSION.c_vk_version()};
+
+VkResult v3dvk_EnumerateInstanceVersion(
+    uint32_t*                                   pApiVersion)
+{
+    *pApiVersion = MAX_API_VERSION;
+    return VK_SUCCESS;
+}
+""")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--out-c', help='Output C file.')
@@ -117,3 +131,7 @@ if __name__ == '__main__':
     if args.out_h:
         with open(args.out_h, 'w') as f:
             f.write(_TEMPLATE_H.render(**template_env))
+
+    if args.out_c:
+        with open(args.out_c, 'w') as f:
+            f.write(_TEMPLATE_C.render(**template_env))
