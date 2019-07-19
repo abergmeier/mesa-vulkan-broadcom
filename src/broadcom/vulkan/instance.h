@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "device.h"
+#include "v3dvk_physical_device.h"
 #include "vulkan/util/vk_debug_report.h"
 
 struct v3dvk_app_info {
@@ -19,7 +19,7 @@ struct v3dvk_instance {
 
     VkAllocationCallbacks                       alloc;
 
-    struct v3dvk_app_info                         app_info;
+    struct v3dvk_app_info                       app_info;
 /*
     struct anv_instance_extension_table         enabled_extensions;
     struct anv_instance_dispatch_table          dispatch;

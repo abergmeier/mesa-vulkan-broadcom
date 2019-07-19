@@ -91,7 +91,9 @@ struct v3dvk_device_extension_table {
 
 _TEMPLATE_C = Template(COPYRIGHT + """
 #include "v3dvk_entrypoints.h"
+#include "v3dvk_physical_device.h"
 #include "vk_util.h"
+#include "util/macros.h"
 
 static const uint32_t MAX_API_VERSION = ${MAX_API_VERSION.c_vk_version()};
 
@@ -100,6 +102,25 @@ VkResult v3dvk_EnumerateInstanceVersion(
 {
     *pApiVersion = MAX_API_VERSION;
     return VK_SUCCESS;
+}
+
+
+uint32_t
+v3dvk_physical_device_api_version(struct v3dvk_physical_device *device)
+{
+    uint32_t version = 0;
+
+    uint32_t override = vk_get_version_override();
+    if (override)
+        return MIN2(override, MAX_API_VERSION);
+
+%for version in API_VERSIONS:
+    if (!(${version.enable}))
+        return version;
+    version = ${version.version.c_vk_version()};
+
+%endfor
+    return version;
 }
 """)
 

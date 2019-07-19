@@ -4,6 +4,7 @@
 #include "common.h"
 #include "util/macros.h"
 #include "instance.h"
+#include "v3dvk_entrypoints.h"
 
 PFN_vkVoidFunction v3dvk_GetInstanceProcAddr(
     VkInstance                                  _instance,

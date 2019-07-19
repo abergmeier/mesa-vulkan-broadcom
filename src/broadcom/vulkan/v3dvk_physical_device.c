@@ -32,12 +32,14 @@
 
 #include "common.h"
 #include "device.h"
+#include "v3dvk_physical_device.h"
 #include "ioctl.h"
 #include <common/v3d_debug.h>
 #include <util/build_id.h>
 #include <util/macros.h>
 #include <util/mesa-sha1.h>
 #include <util/ralloc.h>
+#include <vulkan/util/vk_util.h>
 #include "wsi.h"
 
 static void
@@ -223,6 +225,152 @@ v3dvk_physical_device_finish(struct v3dvk_physical_device *device)
    close(device->local_fd);
    if (device->master_fd >= 0)
       close(device->master_fd);
+}
+
+void v3dvk_GetPhysicalDeviceProperties(
+    VkPhysicalDevice                            physicalDevice,
+    VkPhysicalDeviceProperties*                 pProperties)
+{
+   V3DVK_FROM_HANDLE(v3dvk_physical_device, pdevice, physicalDevice);
+   const struct v3d_device_info *devinfo = &pdevice->info;
+
+   VkPhysicalDeviceLimits limits;
+   // TODO: Insert actual values
+   for (uint8_t* bl = (uint8_t*)&limits; bl < (uint8_t*)&limits + sizeof(VkPhysicalDeviceLimits); ++bl) {
+      *bl = 0;
+   }
+#if 0
+   VkPhysicalDeviceLimits limits = {
+      .maxImageDimension1D                      = (1 << 14),
+      .maxImageDimension2D                      = (1 << 14),
+      .maxImageDimension3D                      = (1 << 11),
+      .maxImageDimensionCube                    = (1 << 14),
+      .maxImageArrayLayers                      = (1 << 11),
+      .maxTexelBufferElements                   = 128 * 1024 * 1024,
+      .maxUniformBufferRange                    = (1ul << 27),
+      .maxStorageBufferRange                    = max_raw_buffer_sz,
+      .maxPushConstantsSize                     = MAX_PUSH_CONSTANTS_SIZE,
+      .maxMemoryAllocationCount                 = UINT32_MAX,
+      .maxSamplerAllocationCount                = 64 * 1024,
+      .bufferImageGranularity                   = 64, /* A cache line */
+      .sparseAddressSpaceSize                   = 0,
+      .maxBoundDescriptorSets                   = MAX_SETS,
+      .maxPerStageDescriptorSamplers            = max_samplers,
+      .maxPerStageDescriptorUniformBuffers      = MAX_PER_STAGE_DESCRIPTOR_UNIFORM_BUFFERS,
+      .maxPerStageDescriptorStorageBuffers      = max_ssbos,
+      .maxPerStageDescriptorSampledImages       = max_textures,
+      .maxPerStageDescriptorStorageImages       = max_images,
+      .maxPerStageDescriptorInputAttachments    = MAX_PER_STAGE_DESCRIPTOR_INPUT_ATTACHMENTS,
+      .maxPerStageResources                     = max_per_stage,
+      .maxDescriptorSetSamplers                 = 6 * max_samplers, /* number of stages * maxPerStageDescriptorSamplers */
+      .maxDescriptorSetUniformBuffers           = 6 * MAX_PER_STAGE_DESCRIPTOR_UNIFORM_BUFFERS,           /* number of stages * maxPerStageDescriptorUniformBuffers */
+      .maxDescriptorSetUniformBuffersDynamic    = MAX_DYNAMIC_BUFFERS / 2,
+      .maxDescriptorSetStorageBuffers           = 6 * max_ssbos,    /* number of stages * maxPerStageDescriptorStorageBuffers */
+      .maxDescriptorSetStorageBuffersDynamic    = MAX_DYNAMIC_BUFFERS / 2,
+      .maxDescriptorSetSampledImages            = 6 * max_textures, /* number of stages * maxPerStageDescriptorSampledImages */
+      .maxDescriptorSetStorageImages            = 6 * max_images,   /* number of stages * maxPerStageDescriptorStorageImages */
+      .maxDescriptorSetInputAttachments         = MAX_DESCRIPTOR_SET_INPUT_ATTACHMENTS,
+      .maxVertexInputAttributes                 = MAX_VBS,
+      .maxVertexInputBindings                   = MAX_VBS,
+      .maxVertexInputAttributeOffset            = 2047,
+      .maxVertexInputBindingStride              = 2048,
+      .maxVertexOutputComponents                = 128,
+      .maxTessellationGenerationLevel           = 64,
+      .maxTessellationPatchSize                 = 32,
+      .maxTessellationControlPerVertexInputComponents = 128,
+      .maxTessellationControlPerVertexOutputComponents = 128,
+      .maxTessellationControlPerPatchOutputComponents = 128,
+      .maxTessellationControlTotalOutputComponents = 2048,
+      .maxTessellationEvaluationInputComponents = 128,
+      .maxTessellationEvaluationOutputComponents = 128,
+      .maxGeometryShaderInvocations             = 32,
+      .maxGeometryInputComponents               = 64,
+      .maxGeometryOutputComponents              = 128,
+      .maxGeometryOutputVertices                = 256,
+      .maxGeometryTotalOutputComponents         = 1024,
+      .maxFragmentInputComponents               = 116, /* 128 components - (PSIZ, CLIP_DIST0, CLIP_DIST1) */
+      .maxFragmentOutputAttachments             = 8,
+      .maxFragmentDualSrcAttachments            = 1,
+      .maxFragmentCombinedOutputResources       = 8,
+      .maxComputeSharedMemorySize               = 64 * 1024,
+      .maxComputeWorkGroupCount                 = { 65535, 65535, 65535 },
+      .maxComputeWorkGroupInvocations           = 32 * devinfo->max_cs_threads,
+      .maxComputeWorkGroupSize = {
+         16 * devinfo->max_cs_threads,
+         16 * devinfo->max_cs_threads,
+         16 * devinfo->max_cs_threads,
+      },
+      .subPixelPrecisionBits                    = 8,
+      .subTexelPrecisionBits                    = 8,
+      .mipmapPrecisionBits                      = 8,
+      .maxDrawIndexedIndexValue                 = UINT32_MAX,
+      .maxDrawIndirectCount                     = UINT32_MAX,
+      .maxSamplerLodBias                        = 16,
+      .maxSamplerAnisotropy                     = 16,
+      .maxViewports                             = MAX_VIEWPORTS,
+      .maxViewportDimensions                    = { (1 << 14), (1 << 14) },
+      .viewportBoundsRange                      = { INT16_MIN, INT16_MAX },
+      .viewportSubPixelBits                     = 13, /* We take a float? */
+      .minMemoryMapAlignment                    = 4096, /* A page */
+      /* The dataport requires texel alignment so we need to assume a worst
+       * case of R32G32B32A32 which is 16 bytes.
+       */
+      .minTexelBufferOffsetAlignment            = 16,
+      /* We need 16 for UBO block reads to work and 32 for push UBOs */
+      .minUniformBufferOffsetAlignment          = 32,
+      .minStorageBufferOffsetAlignment          = 4,
+      .minTexelOffset                           = -8,
+      .maxTexelOffset                           = 7,
+      .minTexelGatherOffset                     = -32,
+      .maxTexelGatherOffset                     = 31,
+      .minInterpolationOffset                   = -0.5,
+      .maxInterpolationOffset                   = 0.4375,
+      .subPixelInterpolationOffsetBits          = 4,
+      .maxFramebufferWidth                      = (1 << 14),
+      .maxFramebufferHeight                     = (1 << 14),
+      .maxFramebufferLayers                     = (1 << 11),
+      .framebufferColorSampleCounts             = sample_counts,
+      .framebufferDepthSampleCounts             = sample_counts,
+      .framebufferStencilSampleCounts           = sample_counts,
+      .framebufferNoAttachmentsSampleCounts     = sample_counts,
+      .maxColorAttachments                      = MAX_RTS,
+      .sampledImageColorSampleCounts            = sample_counts,
+      .sampledImageIntegerSampleCounts          = VK_SAMPLE_COUNT_1_BIT,
+      .sampledImageDepthSampleCounts            = sample_counts,
+      .sampledImageStencilSampleCounts          = sample_counts,
+      .storageImageSampleCounts                 = VK_SAMPLE_COUNT_1_BIT,
+      .maxSampleMaskWords                       = 1,
+      .timestampComputeAndGraphics              = true,
+      .timestampPeriod                          = 1000000000.0 / devinfo->timestamp_frequency,
+      .maxClipDistances                         = 8,
+      .maxCullDistances                         = 8,
+      .maxCombinedClipAndCullDistances          = 8,
+      .discreteQueuePriorities                  = 2,
+      .pointSizeRange                           = { 0.125, 255.875 },
+      .lineWidthRange                           = { 0.0, 7.9921875 },
+      .pointSizeGranularity                     = (1.0 / 8.0),
+      .lineWidthGranularity                     = (1.0 / 128.0),
+      .strictLines                              = false, /* FINISHME */
+      .standardSampleLocations                  = true,
+      .optimalBufferCopyOffsetAlignment         = 128,
+      .optimalBufferCopyRowPitchAlignment       = 128,
+      .nonCoherentAtomSize                      = 64,
+   };
+#endif
+   *pProperties = (VkPhysicalDeviceProperties) {
+      .apiVersion = v3dvk_physical_device_api_version(pdevice),
+      .driverVersion = vk_get_driver_version(),
+      .vendorID = 0x8086,
+      .deviceID = pdevice->info.ver,
+      .deviceType = VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
+      .limits = limits,
+      .sparseProperties = {0}, /* TODO: See whether we can do sparse */
+   };
+
+   snprintf(pProperties->deviceName, sizeof(pProperties->deviceName),
+            "%s", pdevice->name);
+   memcpy(pProperties->pipelineCacheUUID,
+          pdevice->pipeline_cache_uuid, VK_UUID_SIZE);
 }
 
 PFN_vkVoidFunction v3dvk_GetDeviceProcAddr(
