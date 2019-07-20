@@ -107,7 +107,10 @@ struct wsi_device {
    VkPhysicalDeviceMemoryProperties memory_props;
    uint32_t queue_family_count;
 
-   VkPhysicalDevicePCIBusInfoPropertiesEXT pci_bus_info;
+   union {
+      VkPhysicalDevicePCIBusInfoPropertiesEXT pci_bus_info;
+      VkPhysicalDevicePlatformBusInfoPropertiesEXT platform_bus_info;
+   };
 
    bool supports_modifiers;
    uint32_t maxImageDimension2D;

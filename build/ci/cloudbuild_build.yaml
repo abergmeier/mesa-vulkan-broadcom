@@ -1,0 +1,122 @@
+steps:
+- id: Init storage repo
+  name: alpine/git
+  args: ["clone", "https://github.com/abergmeier/mesa-vulkan-broadcom", "--depth", "1", "/repo/mesa-vulkan-broadcom"]
+  volumes:
+  - name: repo
+    path: /repo
+  waitFor: ["-"]
+- id: Clone Workspace (32bit)
+  name: alpine
+  entrypoint: /bin/sh
+  args: ["-c", "cp -r /workspace/* /workspace32"]
+  waitFor: ["-"]
+  volumes:
+  - name: w32
+    path: /workspace32
+- id: Restore cache (32bit)
+  name: gcr.io/cloud-builders/gsutil
+  entrypoint: /bin/sh
+  args:
+  - "-c"
+  - |
+    mkdir -p /workspace32/build/src
+    gsutil -m -q cp -r gs://v3dvk-cache/build32/src /workspace32/build/src
+  volumes:
+  - name: w32
+    path: /workspace32
+- id: Bootstrap (32bit)
+  name: gcr.io/$PROJECT_ID/buildenv:32
+  entrypoint: "/bin/bash"
+  args:
+  - "-c"
+  - |
+    cd /workspace32
+    bash scripts/bootstrap.sh 32
+  volumes:
+  - name: w32
+    path: /workspace32
+- id: Build (32bit)
+  name: gcr.io/$PROJECT_ID/buildenv:32
+  args: ["ninja", "-C", "/workspace32/build", "-k", "100"]
+  volumes:
+  - name: w32
+    path: /workspace32
+- id: Store cache (32bit)
+  name: gcr.io/cloud-builders/gsutil
+  args: ["-m", "-q", "rsync", "-d", "-r", "/workspace32/build/src", "gs://v3dvk-cache/build32/src"]
+  volumes:
+  - name: w32
+    path: /workspace32
+- id: Download credentials
+  name: gcr.io/cloud-builders/gsutil
+  args: ["cp", "-r", "gs://rpi-secrets/github/*", "/github"]
+  volumes:
+  - name: github
+    path: /github
+- name: abergmeier/hub:2.12.8
+  entrypoint: /bin/ash
+  env: ["GITHUB_USER=abergmeier", "GITHUB_REPOSITORY=abergmeier/mesa-vulkan-broadcom"]
+  args:
+  - "-c"
+  - |
+    cd /repo/mesa-vulkan-broadcom
+    export GITHUB_TOKEN=$(cat /github/token)
+    hub release create -p -m "Build (32bit) by CI via $BUILD_ID" -t $COMMIT_SHA -a /workspace32/build/src/broadcom/vulkan/libvulkan_broadcom.so -a /workspace32/build/src/broadcom/vulkan/dev_icd.armv7hl.json snapshot32_$SHORT_SHA
+  volumes:
+  - name: github
+    path: /github
+  - name: repo
+    path: /repo
+  - name: w32
+    path: /workspace32
+  waitFor: ["Init storage repo", "Build (32bit)", "Download credentials"]
+- name: alpine
+  entrypoint: /bin/sh
+  args: ["-c", "cp -r /workspace/* /workspace64"]
+  waitFor: ["-"]
+  volumes:
+  - name: w64
+    path: /workspace64
+- id: Bootstrap (64bit)
+  name: gcr.io/$PROJECT_ID/buildenv:64
+  entrypoint: /bin/bash
+  args:
+  - "-c"
+  - |
+    cd /workspace64
+    bash scripts/bootstrap.sh 64
+  volumes:
+  - name: w64
+    path: /workspace64
+- id: Build (64bit)
+  name: gcr.io/$PROJECT_ID/buildenv:64
+  args: ["ninja", "-C", "/workspace64/build", "-k", "100"]
+  volumes:
+  - name: w64
+    path: /workspace64
+- id: Store build results (32bit)
+  name: gcr.io/cloud-builders/gsutil
+  args:
+  - cp
+  - /workspace32/build/src/broadcom/vulkan/libvulkan_broadcom.so
+  - /workspace32/build/src/broadcom/vulkan/dev_icd.armv7hl.json
+  - /workspace32/build/meson-logs/meson-log.txt
+  - gs://v3dvk-build-results/32
+  volumes:
+  - name: w32
+    path: /workspace32
+- id: Store build results (64bit)
+  name: gcr.io/cloud-builders/gsutil
+  args:
+  - cp
+  - /workspace64/build/src/broadcom/vulkan/libvulkan_broadcom.so
+  - /workspace64/build/src/broadcom/vulkan/dev_icd.aarch64.json
+  - /workspace64/build/meson-logs/meson-log.txt
+  - gs://v3dvk-build-results/64
+  volumes:
+  - name: w64
+    path: /workspace64
+options:
+  machineType: N1_HIGHCPU_8
+timeout: 1200s

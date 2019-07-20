@@ -180,9 +180,13 @@ wsi_device_matches_drm_fd(const struct wsi_device *wsi, int drm_fd)
               wsi->pci_bus_info.pciDevice == fd_device->businfo.pci->dev &&
               wsi->pci_bus_info.pciFunction == fd_device->businfo.pci->func;
       break;
-
-   default:
+   case DRM_BUS_PLATFORM:
+      match = !strncmp(wsi->platform_bus_info.platformFullname, fd_device->businfo.platform->fullname, ARRAY_SIZE(wsi->platform_bus_info.platformFullname)) &&
+              wsi->platform_bus_info.platformFullname[0] != '\0';
       break;
+   default:
+      fprintf(stderr, "Unhandled bustype: %i\n", fd_device->bustype);
+      abort();
    }
 
    drmFreeDevice(&fd_device);

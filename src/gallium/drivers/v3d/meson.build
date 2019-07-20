@@ -86,8 +86,8 @@ foreach ver : v3d_versions
 endforeach
 
 v3d_neon_c_args = []
-if host_machine.cpu_family() == 'arm'
-    v3d_neon_c_args = '-mfpu=neon'
+if host_machine.cpu_family() == 'arm' and host_machine.cpu() != 'aarch64'
+    v3d_neon_c_args = '-mfpu=neon-vfpv3'
 endif
 
 libv3d_neon = static_library(

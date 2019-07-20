@@ -340,8 +340,12 @@ anv_physical_device_init(struct anv_physical_device *device,
    brw_process_intel_debug_variable();
 
    fd = open(path, O_RDWR | O_CLOEXEC);
-   if (fd < 0)
+   if (fd < 0) {
+      if (errno == EACCES) {
+        return vk_error(VK_ERROR_INITIALIZATION_FAILED);
+      }
       return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
+   }
 
    device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
    device->instance = instance;
