@@ -169,7 +169,7 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
       goto fail;
    }
 
-   if (true) {
+   if (device->info.ver == 42) {
       /* Videocore 6 fully supported */
    } else {
       result = vk_errorf(device->instance, device,
