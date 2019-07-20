@@ -1,5 +1,6 @@
 /*
- * Copyright © 2016 Broadcom
+ * Copyright © 2014-2017 Broadcom
+ * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,29 +22,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef V3D_CHIP_H
-#define V3D_CHIP_H
+#ifndef V3D_INFO_H
+#define V3D_INFO_H
 
 #include <stdbool.h>
-#include <stdint.h>
 
-#include "v3d_info.h"
+#include <drm-uapi/v3d_drm.h>
 
-/**
- * Struct for tracking features of the V3D chip across driver and compiler.
- */
-struct v3d_device_info {
-        /** Simple V3D version: major * 10 + minor */
-        uint8_t ver;
-
-        /** Size of the VPM, in bytes. */
-        int vpm_size;
-
-        /* NSLC * QUPS from the core's IDENT registers. */
-        int qpu_count;
-};
+typedef int (*v3d_ioctl_fun)(int fd, unsigned long request, void *arg);
 
 bool
-v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun fun);
+v3d_get_param(int fd, v3d_ioctl_fun drm_ioctl, enum drm_v3d_param param, __u64* value);
 
 #endif

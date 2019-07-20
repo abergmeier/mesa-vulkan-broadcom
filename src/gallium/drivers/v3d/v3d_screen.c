@@ -25,6 +25,7 @@
 #include <sys/sysinfo.h>
 
 #include "common/v3d_device_info.h"
+#include "common/v3d_info.h"
 #include "util/os_misc.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
@@ -90,15 +91,11 @@ v3d_screen_destroy(struct pipe_screen *pscreen)
 static bool
 v3d_has_feature(struct v3d_screen *screen, enum drm_v3d_param feature)
 {
-        struct drm_v3d_get_param p = {
-                .param = feature,
-        };
-        int ret = v3d_ioctl(screen->fd, DRM_IOCTL_V3D_GET_PARAM, &p);
-
-        if (ret != 0)
+        __u64 value = 0;
+        if (!v3d_get_param(screen->fd, v3d_ioctl, DRM_IOCTL_V3D_GET_PARAM, &value))
                 return false;
 
-        return p.value;
+        return value;
 }
 
 static int
