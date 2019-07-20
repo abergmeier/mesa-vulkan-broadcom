@@ -138,3 +138,7 @@ endif
 if with_intel_vk
   install_headers('vulkan/vulkan_intel.h', subdir : 'vulkan')
 endif
+
+if with_broadcom_vk
+  install_headers('vulkan/vulkan_broadcom.h', subdir : 'vulkan')
+endif

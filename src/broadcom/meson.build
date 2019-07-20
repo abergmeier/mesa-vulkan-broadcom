@@ -25,7 +25,7 @@ subdir('cle')
 v3d_versions = ['33', '41', '42']
 v3d_libs = []
 
-if with_gallium_v3d
+if with_gallium_v3d or with_broadcom_vk
   subdir('compiler')
   subdir('qpu')
 endif
@@ -51,7 +51,13 @@ endforeach
 libbroadcom_v3d = static_library(
   'libbroadcom_v3d',
   [
-    files('common/v3d_debug.c', 'common/v3d_device_info.c', 'clif/clif_dump.c'),
+    files(
+      'common/broadcom_log.c',
+      'common/v3d_debug.c',
+      'common/v3d_device_info.c',
+      'common/v3d_info.c',
+      'clif/clif_dump.c',
+    ),
     v3d_xml_pack,
   ],
   include_directories : [inc_common, inc_broadcom, inc_src],
@@ -60,3 +66,7 @@ libbroadcom_v3d = static_library(
   build_by_default : false,
   dependencies: [dep_valgrind, dep_thread],
 )
+
+if with_broadcom_vk and v3dvkc
+  subdir('vulkan')
+endif

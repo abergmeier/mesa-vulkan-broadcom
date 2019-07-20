@@ -27,6 +27,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "v3d_info.h"
+
 /**
  * Struct for tracking features of the V3D chip across driver and compiler.
  */
@@ -41,9 +43,9 @@ struct v3d_device_info {
         int qpu_count;
 };
 
-typedef int (*v3d_ioctl_fun)(int fd, unsigned long request, void *arg);
-
 bool
 v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun fun);
+
+const char *v3d_get_device_name(const struct v3d_device_info* devinfo);
 
 #endif

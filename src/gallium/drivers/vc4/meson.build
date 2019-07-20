@@ -85,13 +85,18 @@ vc4_c_args = []
 
 libvc4_neon = []
 if host_machine.cpu_family() == 'arm'
+  if host_machine.cpu() == 'aarch64'
+      libvc4_neon_c_args = ''
+  else
+      libvc4_neon_c_args = '-mfpu=neon-vfpv3'
+  endif
   libvc4_neon = static_library(
     'vc4_neon',
     'vc4_tiling_lt_neon.c',
     include_directories : [
       inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_broadcom
     ],
-    c_args : '-mfpu=neon',
+    c_args : libvc4_neon_c_args,
   )
   vc4_c_args += '-DUSE_ARM_ASM'
 endif
