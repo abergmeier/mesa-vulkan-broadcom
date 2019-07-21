@@ -178,6 +178,12 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
       goto fail;
    }
 
+#if 0
+   result = v3dvk_physical_device_init_heaps(device, fd);
+   if (result != VK_SUCCESS)
+      goto fail;
+#endif
+
    result = v3dvk_physical_device_init_uuids(device);
    if (result != VK_SUCCESS)
       goto fail;
