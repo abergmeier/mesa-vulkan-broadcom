@@ -29,10 +29,8 @@
 #include <vulkan/vulkan.h>
 #include "util/list.h"
 
-struct v3dvk_cmd_pool {
-   VkAllocationCallbacks                        alloc;
-   struct list_head                             cmd_buffers;
-};
+struct v3dvk_cmd_pool;
+struct v3dvk_device;
 
 struct v3dvk_cmd_buffer {
    VK_LOADER_DATA                               _loader_data;
@@ -82,5 +80,8 @@ struct v3dvk_cmd_buffer {
    struct anv_cmd_state                         state;
 #endif
 };
+
+void
+v3dvk_cmd_buffer_destroy(struct v3dvk_cmd_buffer *cmd_buffer);
 
 #endif // V3DVK_CMD_BUFFER_H

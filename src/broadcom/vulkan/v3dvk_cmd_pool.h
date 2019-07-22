@@ -1,3 +1,4 @@
+
 /*
  * Copyright © 2015 Intel Corporation
  *
@@ -21,21 +22,15 @@
  * IN THE SOFTWARE.
  */
 
-#include "v3dvk_cmd_buffer.h"
-#include "v3dvk_cmd_pool.h"
-#include "vulkan/util/vk_alloc.h"
+#ifndef V3DVK_CMD_POOL_H
+#define V3DVK_CMD_POOL_H
 
-void
-v3dvk_cmd_buffer_destroy(struct v3dvk_cmd_buffer *cmd_buffer)
-{
-   list_del(&cmd_buffer->pool_link);
-#if 0
-   anv_cmd_buffer_fini_batch_bo_chain(cmd_buffer);
+#include <vulkan/vulkan.h>
+#include "util/list.h"
 
-   anv_state_stream_finish(&cmd_buffer->surface_state_stream);
-   anv_state_stream_finish(&cmd_buffer->dynamic_state_stream);
+struct v3dvk_cmd_pool {
+   VkAllocationCallbacks                        alloc;
+   struct list_head                             cmd_buffers;
+};
 
-   anv_cmd_state_finish(cmd_buffer);
 #endif
-   vk_free(&cmd_buffer->pool->alloc, cmd_buffer);
-}
