@@ -52,6 +52,7 @@ libbroadcom_v3d = static_library(
   'libbroadcom_v3d',
   [
     files(
+      'common/broadcom_log.c',
       'common/v3d_debug.c',
       'common/v3d_device_info.c',
       'common/v3d_info.c',

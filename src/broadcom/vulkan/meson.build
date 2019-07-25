@@ -62,12 +62,15 @@ libv3dvk_files = files(
   'instance.h',
   'ioctl.h',
   'valgrind.h',
+  'v3dvk_batch.c',
   'v3dvk_cmd_buffer.c',
-  'v3dvk_cmd_buffer.h',
   'v3dvk_cmd_pool.c',
+  'v3dvk_gem.c',
   'v3dvk_physical_device.c',
-  'v3dvk_physical_device.h',
+  'v3dvk_queue.c',
   'v3dvk_macro.h',
+  'v3dvk_semaphore.h',
+  'v3dvk_util.c',
   'wsi.c',
 )
 

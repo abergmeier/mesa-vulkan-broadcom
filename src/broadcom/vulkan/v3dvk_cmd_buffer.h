@@ -28,6 +28,7 @@
 #include <vulkan/vk_icd.h>
 #include <vulkan/vulkan.h>
 #include "util/list.h"
+#include "v3dvk_batch.h"
 #include "v3dvk_defines.h"
 
 struct v3dvk_cmd_pool;
@@ -239,9 +240,9 @@ struct v3dvk_cmd_buffer {
 
    struct v3dvk_cmd_pool *                        pool;
    struct list_head                             pool_link;
-#if 0
-   struct v3dvk_batch                           batch;
 
+   struct v3dvk_batch                           batch;
+#if 0
    /* Fields required for the actual chain of anv_batch_bo's.
     *
     * These fields are initialized by anv_cmd_buffer_init_batch_bo_chain().
@@ -328,5 +329,13 @@ struct v3dvk_render_pass {
    struct v3dvk_render_pass_attachment *        attachments;
    struct v3dvk_subpass                         subpasses[0];
 };
+
+VkResult v3dvk_cmd_buffer_execbuf(struct v3dvk_device *device,
+                                  struct v3dvk_cmd_buffer *cmd_buffer,
+                                  const VkSemaphore *in_semaphores,
+                                  uint32_t num_in_semaphores,
+                                  const VkSemaphore *out_semaphores,
+                                  uint32_t num_out_semaphores,
+                                  VkFence fence);
 
 #endif // V3DVK_CMD_BUFFER_H

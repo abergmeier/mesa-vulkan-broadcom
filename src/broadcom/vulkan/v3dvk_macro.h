@@ -1,6 +1,8 @@
 #ifndef V3DVK_MACRO_H
 #define V3DVK_MACRO_H
 
+#define anv_printflike(a, b) __attribute__((__format__(__printf__, a, b)))
+
 /**
  * Warn on ignored extension structs.
  *
