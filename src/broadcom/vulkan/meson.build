@@ -53,6 +53,34 @@ v3dvk_extensions_c = custom_target(
   depend_files : v3dvk_extensions_py,
 )
 
+broadcom_icd = custom_target(
+  'broadcom_icd',
+  input : 'v3dvk_icd.py',
+  output : 'broadcom_icd.@0@.json'.format(host_machine.cpu()),
+  command : [
+    prog_python, '@INPUT@',
+    '--lib-path', join_paths(get_option('prefix'), get_option('libdir')),
+    '--out', '@OUTPUT@',
+  ],
+  depend_files : v3dvk_extensions_py,
+  build_by_default : true,
+  install_dir : with_vulkan_icd_dir,
+  install : true,
+)
+
+dev_icd = custom_target(
+  'dev_icd',
+  input : 'v3dvk_icd.py',
+  output : 'dev_icd.@0@.json'.format(host_machine.cpu()),
+  command : [
+    prog_python, '@INPUT@', '--lib-path', '/usr/local/lib',
+    '--out', '@OUTPUT@'
+  ],
+  depend_files : files('v3dvk_extensions.py'),
+  build_by_default : true,
+  install : false,
+)
+
 libv3dvk_files = files(
   'common.h',
   'device.c',

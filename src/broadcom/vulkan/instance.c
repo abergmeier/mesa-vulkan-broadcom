@@ -12,6 +12,7 @@
 #include <vulkan/vulkan_broadcom.h>
 #include "v3dvk_macro.h"
 #include "vulkan/util/vk_util.h"
+#include "v3dvk_extensions.h"
 
 static void *
 default_alloc_func(void *pUserData, size_t size, size_t align,
@@ -39,6 +40,23 @@ static const VkAllocationCallbacks default_alloc = {
    .pfnReallocation = default_realloc_func,
    .pfnFree = default_free_func,
 };
+
+VkResult v3dvk_EnumerateInstanceExtensionProperties(
+    const char*                                 pLayerName,
+    uint32_t*                                   pPropertyCount,
+    VkExtensionProperties*                      pProperties)
+{
+   VK_OUTARRAY_MAKE(out, pProperties, pPropertyCount);
+
+   for (int i = 0; i < V3DVK_INSTANCE_EXTENSION_COUNT; i++) {
+      if (v3dvk_instance_extensions_supported.extensions[i]) {
+         vk_outarray_append(&out, prop) {
+            *prop = v3dvk_instance_extensions[i];
+         }
+      }
+   }
+   return vk_outarray_status(&out);
+}
 
 /*
  * https://www.khronos.org/registry/vulkan/specs/1.1-extensions/html/vkspec.html#vkCreateInstance

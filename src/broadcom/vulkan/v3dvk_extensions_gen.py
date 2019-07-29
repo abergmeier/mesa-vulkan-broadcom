@@ -62,6 +62,8 @@ _TEMPLATE_H = Template(COPYRIGHT + """
 
 #define V3DVK_INSTANCE_EXTENSION_COUNT ${len(instance_extensions)}
 
+extern const VkExtensionProperties v3dvk_instance_extensions[];
+
 struct v3dvk_instance_extension_table {
    union {
       bool extensions[V3DVK_INSTANCE_EXTENSION_COUNT];
@@ -73,7 +75,12 @@ struct v3dvk_instance_extension_table {
    };
 };
 
+extern const struct v3dvk_instance_extension_table v3dvk_instance_extensions_supported;
+
+
 #define V3DVK_DEVICE_EXTENSION_COUNT ${len(device_extensions)}
+
+extern const VkExtensionProperties v3dvk_device_extensions[];
 
 struct v3dvk_device_extension_table {
    union {
@@ -104,6 +111,11 @@ VkResult v3dvk_EnumerateInstanceVersion(
     return VK_SUCCESS;
 }
 
+const struct v3dvk_instance_extension_table v3dvk_instance_extensions_supported = {
+%for ext in instance_extensions:
+   .${ext.name[3:]} = ${ext.enable},
+%endfor
+};
 
 uint32_t
 v3dvk_physical_device_api_version(struct v3dvk_physical_device *device)
