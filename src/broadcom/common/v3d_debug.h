@@ -27,6 +27,7 @@
 #define MESA_V3D_DEBUG_H
 
 #include <stdint.h>
+#include <stdio.h>
 #include "compiler/shader_enums.h"
 
 #ifdef __cplusplus
