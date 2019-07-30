@@ -6,6 +6,7 @@
 
 #include <xf86drm.h>
 
+#include "vulkan/wsi/wsi_common.h"
 #include "common/v3d_device_info.h"
 
 struct v3dvk_physical_device {
@@ -72,9 +73,9 @@ struct v3dvk_physical_device {
 #if 0
 
     struct disk_cache *                         disk_cache;
-
-    struct wsi_device                       wsi_device;
 #endif
+    struct wsi_device                           wsi_device;
+
     int                                         local_fd;
     int                                         master_fd;
 };
