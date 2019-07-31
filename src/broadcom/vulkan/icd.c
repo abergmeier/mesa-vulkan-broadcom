@@ -29,7 +29,7 @@ PFN_vkVoidFunction v3dvk_GetInstanceProcAddr(
    LOOKUP_V3DVK_ENTRYPOINT(EnumerateInstanceVersion);
    LOOKUP_V3DVK_ENTRYPOINT(CreateInstance);
 
-#undef LOOKUP_ANV_ENTRYPOINT
+#undef LOOKUP_V3DVK_ENTRYPOINT
    if (instance == NULL)
       return NULL;
 
