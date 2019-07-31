@@ -651,6 +651,29 @@ void v3dvk_GetPhysicalDeviceProperties(
           pdevice->pipeline_cache_uuid, VK_UUID_SIZE);
 }
 
+/* For now we support exactly one queue family. */
+static const VkQueueFamilyProperties
+v3dvk_queue_family_properties = {
+   .queueFlags = VK_QUEUE_GRAPHICS_BIT |
+                 VK_QUEUE_COMPUTE_BIT |
+                 VK_QUEUE_TRANSFER_BIT,
+   .queueCount = 1,
+   .timestampValidBits = 36, /* XXX: Real value here */
+   .minImageTransferGranularity = { 1, 1, 1 },
+};
+
+void v3dvk_GetPhysicalDeviceQueueFamilyProperties(
+    VkPhysicalDevice                              physicalDevice,
+    uint32_t*                                     pCount,
+    VkQueueFamilyProperties*                      pQueueFamilyProperties)
+{
+   VK_OUTARRAY_MAKE(out, pQueueFamilyProperties, pCount);
+
+   vk_outarray_append(&out, p) {
+      *p = v3dvk_queue_family_properties;
+   }
+}
+
 PFN_vkVoidFunction v3dvk_GetDeviceProcAddr(
     VkDevice                                    _device,
     const char*                                 pName)
