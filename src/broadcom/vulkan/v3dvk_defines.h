@@ -27,4 +27,6 @@
 #define MAX_VIEWPORTS   16
 #define MAX_SCISSORS    16
 
+#define MAX_PUSH_DESCRIPTORS 32 /* Minimum requirement */
+
 #endif
