@@ -33,6 +33,14 @@ PFN_vkVoidFunction v3dvk_GetInstanceProcAddr(
    if (instance == NULL)
       return NULL;
 
+   int idx = v3dvk_get_instance_entrypoint_index(pName);
+   if (idx >= 0)
+      return instance->dispatch.entrypoints[idx];
+
+   idx = v3dvk_get_device_entrypoint_index(pName);
+   if (idx >= 0)
+      return instance->device_dispatch.entrypoints[idx];
+
    // TODO: Implement
    return NULL;
 }

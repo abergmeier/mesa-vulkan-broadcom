@@ -75,8 +75,24 @@ VkResult v3dvk_CreateInstance(
    VkResult result;
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO);
-   //TODO: Support extensions
-   assert(pCreateInfo->enabledExtensionCount == 0);
+
+   struct v3dvk_instance_extension_table enabled_extensions = {};
+   for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
+      int idx;
+      for (idx = 0; idx < V3DVK_INSTANCE_EXTENSION_COUNT; idx++) {
+         if (strcmp(pCreateInfo->ppEnabledExtensionNames[i],
+                    v3dvk_instance_extensions[idx].extensionName) == 0)
+            break;
+      }
+
+      if (idx >= V3DVK_INSTANCE_EXTENSION_COUNT)
+         return vk_error(VK_ERROR_EXTENSION_NOT_PRESENT);
+
+      if (!v3dvk_instance_extensions_supported.extensions[idx])
+         return vk_error(VK_ERROR_EXTENSION_NOT_PRESENT);
+
+      enabled_extensions.extensions[idx] = true;
+   }
 
    instance = vk_alloc2(&default_alloc, pAllocator, sizeof(*instance), 8,
                          VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
@@ -109,6 +125,34 @@ VkResult v3dvk_CreateInstance(
 
    if (instance->app_info.api_version == 0)
       instance->app_info.api_version = VK_API_VERSION_1_0;
+
+   instance->enabled_extensions = enabled_extensions;
+
+   for (unsigned i = 0; i < ARRAY_SIZE(instance->dispatch.entrypoints); i++) {
+      /* Vulkan requires that entrypoints for extensions which have not been
+       * enabled must not be advertised.
+       */
+      if (!v3dvk_instance_entrypoint_is_enabled(i, instance->app_info.api_version,
+                                                &instance->enabled_extensions)) {
+         instance->dispatch.entrypoints[i] = NULL;
+      } else {
+         instance->dispatch.entrypoints[i] =
+            v3dvk_instance_dispatch_table.entrypoints[i];
+      }
+   }
+
+   for (unsigned i = 0; i < ARRAY_SIZE(instance->device_dispatch.entrypoints); i++) {
+      /* Vulkan requires that entrypoints for extensions which have not been
+       * enabled must not be advertised.
+       */
+      if (!v3dvk_device_entrypoint_is_enabled(i, instance->app_info.api_version,
+                                              &instance->enabled_extensions, NULL)) {
+         instance->device_dispatch.entrypoints[i] = NULL;
+      } else {
+         instance->device_dispatch.entrypoints[i] =
+            v3dvk_device_dispatch_table.entrypoints[i];
+      }
+   }
 
    instance->physicalDeviceCount = -1;
 

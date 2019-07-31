@@ -45,6 +45,9 @@ LAYERS = [
 TEMPLATE_H = Template("""\
 /* This file generated from ${filename}, don't edit directly. */
 
+#ifndef V3DVK_ENTRYPOINTS_H
+#define V3DVK_ENTRYPOINTS_H
+
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_broadcom.h>
 #include "common/v3d_device_info.h"
@@ -135,6 +138,8 @@ v3dvk_device_entrypoint_is_enabled(int index, uint32_t core_version,
 
 void *v3dvk_lookup_entrypoint(const struct v3d_device_info *devinfo,
                               const char *name);
+
+#endif
 """, output_encoding='utf-8')
 
 TEMPLATE_C = Template(u"""\

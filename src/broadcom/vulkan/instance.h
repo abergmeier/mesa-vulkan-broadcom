@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "v3dvk_entrypoints.h"
 #include "v3dvk_physical_device.h"
 #include "vulkan/util/vk_debug_report.h"
 
@@ -20,11 +21,12 @@ struct v3dvk_instance {
     VkAllocationCallbacks                       alloc;
 
     struct v3dvk_app_info                       app_info;
-/*
-    struct anv_instance_extension_table         enabled_extensions;
-    struct anv_instance_dispatch_table          dispatch;
-    struct anv_device_dispatch_table            device_dispatch;
-*/
+
+    struct v3dvk_instance_extension_table       enabled_extensions;
+
+    struct v3dvk_instance_dispatch_table        dispatch;
+    struct v3dvk_device_dispatch_table          device_dispatch;
+
     int                                         physicalDeviceCount;
     struct v3dvk_physical_device                physicalDevice;
 
