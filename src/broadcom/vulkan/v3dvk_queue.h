@@ -32,6 +32,14 @@ struct v3dvk_queue {
     VK_LOADER_DATA                              _loader_data;
 
     struct v3dvk_device *                       device;
+
+    VkDeviceQueueCreateFlags                    flags;
 };
+
+void
+v3dvk_queue_init(struct v3dvk_device *device, struct v3dvk_queue *queue);
+
+void
+v3dvk_queue_finish(struct v3dvk_queue *queue);
 
 #endif

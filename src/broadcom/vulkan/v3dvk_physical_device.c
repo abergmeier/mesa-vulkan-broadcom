@@ -674,6 +674,29 @@ void v3dvk_GetPhysicalDeviceQueueFamilyProperties(
    }
 }
 
+void v3dvk_GetPhysicalDeviceMemoryProperties(
+    VkPhysicalDevice                            physicalDevice,
+    VkPhysicalDeviceMemoryProperties*           pMemoryProperties)
+{
+   V3DVK_FROM_HANDLE(v3dvk_physical_device, physical_device, physicalDevice);
+
+   pMemoryProperties->memoryTypeCount = physical_device->memory.type_count;
+   for (uint32_t i = 0; i < physical_device->memory.type_count; i++) {
+      pMemoryProperties->memoryTypes[i] = (VkMemoryType) {
+         .propertyFlags = physical_device->memory.types[i].propertyFlags,
+         .heapIndex     = physical_device->memory.types[i].heapIndex,
+      };
+   }
+
+   pMemoryProperties->memoryHeapCount = physical_device->memory.heap_count;
+   for (uint32_t i = 0; i < physical_device->memory.heap_count; i++) {
+      pMemoryProperties->memoryHeaps[i] = (VkMemoryHeap) {
+         .size    = physical_device->memory.heaps[i].size,
+         .flags   = physical_device->memory.heaps[i].flags,
+      };
+   }
+}
+
 PFN_vkVoidFunction v3dvk_GetDeviceProcAddr(
     VkDevice                                    _device,
     const char*                                 pName)

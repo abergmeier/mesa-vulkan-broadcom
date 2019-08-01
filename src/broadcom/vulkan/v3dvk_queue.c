@@ -144,3 +144,16 @@ out:
 #endif
    return result;
 }
+
+void
+v3dvk_queue_init(struct v3dvk_device *device, struct v3dvk_queue *queue)
+{
+   queue->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
+   queue->device = device;
+   queue->flags = 0;
+}
+
+void
+v3dvk_queue_finish(struct v3dvk_queue *queue)
+{
+}

@@ -2,12 +2,13 @@
 #define V3DVK_PHYSICAL_DEVICE_H
 
 #include <vulkan/vk_icd.h>
-#include <vulkan/vulkan.h>
 
 #include <xf86drm.h>
 
 #include "vulkan/wsi/wsi_common.h"
 #include "common/v3d_device_info.h"
+
+#include "v3dvk_memory.h"
 
 struct v3dvk_physical_device {
     VK_LOADER_DATA                              _loader_data;
@@ -53,19 +54,19 @@ struct v3dvk_physical_device {
     bool                                        has_bindless_images;
     /** True if we can use bindless access for samplers */
     bool                                        has_bindless_samplers;
-
-    struct anv_device_extension_table           supported_extensions;
-
+#endif
+    struct v3dvk_device_extension_table         supported_extensions;
+#if 0
     uint32_t                                    eu_total;
     uint32_t                                    subslice_total;
-
+#endif
     struct {
       uint32_t                                  type_count;
-      struct anv_memory_type                    types[VK_MAX_MEMORY_TYPES];
+      struct v3dvk_memory_type                  types[VK_MAX_MEMORY_TYPES];
       uint32_t                                  heap_count;
-      struct anv_memory_heap                    heaps[VK_MAX_MEMORY_HEAPS];
+      struct v3dvk_memory_heap                  heaps[VK_MAX_MEMORY_HEAPS];
     } memory;
-#endif
+
     uint8_t                                     driver_build_sha1[20];
     uint8_t                                     pipeline_cache_uuid[VK_UUID_SIZE];
     uint8_t                                     driver_uuid[VK_UUID_SIZE];
