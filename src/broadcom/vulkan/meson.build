@@ -95,6 +95,7 @@ libv3dvk_files = files(
   'v3dvk_cmd_pool.c',
   'v3dvk_formats.c',
   'v3dvk_gem.c',
+  'v3dvk_image.c',
   'v3dvk_physical_device.c',
   'v3dvk_queue.c',
   'v3dvk_macro.h',

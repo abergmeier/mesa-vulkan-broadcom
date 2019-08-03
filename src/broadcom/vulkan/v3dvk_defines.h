@@ -29,4 +29,14 @@
 
 #define MAX_PUSH_DESCRIPTORS 32 /* Minimum requirement */
 
+/* A non-fatal assert.  Useful for debugging. */
+#ifdef DEBUG
+#define v3dvk_assert(x) ({ \
+   if (unlikely(!(x))) \
+      broadcom_loge("%s:%d ASSERT: %s", __FILE__, __LINE__, #x); \
+})
+#else
+#define v3dvk_assert(x)
+#endif
+
 #endif
