@@ -17,12 +17,6 @@ struct v3dvk_physical_device {
     bool                                        no_hw;
     char                                        path[20];
     const char *                                name;
-    struct {
-       uint16_t                                 domain;
-       uint8_t                                  bus;
-       uint8_t                                  device;
-       uint8_t                                  function;
-    }                                           pci_info;
     struct v3d_device_info                      info;
 #if 0
     /** Amount of "GPU memory" we want to advertise

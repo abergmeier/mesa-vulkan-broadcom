@@ -314,16 +314,6 @@ void v3dvk_GetPhysicalDeviceFeatures2(
    }
 }
 
-static void
-v3dvk_debug_physical_device_pci(const struct v3dvk_physical_device* dev)
-{
-   DBG(V3D_DEBUG_SURFACE,
-       "V3DVK pci_info: %X, %X, %X, %X", dev->pci_info.domain,
-                                         dev->pci_info.bus,
-                                         dev->pci_info.device,
-                                         dev->pci_info.function);
-}
-
 static VkResult
 v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
 {
@@ -427,13 +417,6 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
       result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
       goto fail;
    }
-
-   device->pci_info.domain = drm_device->businfo.pci->domain;
-   device->pci_info.bus = drm_device->businfo.pci->bus;
-   device->pci_info.device = drm_device->businfo.pci->dev;
-   device->pci_info.function = drm_device->businfo.pci->func;
-
-   v3dvk_debug_physical_device_pci(device);
 
    device->name = v3d_get_device_name(&device->info);
    if (!device->name) {
