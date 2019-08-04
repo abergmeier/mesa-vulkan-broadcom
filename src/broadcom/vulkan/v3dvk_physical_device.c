@@ -712,3 +712,23 @@ PFN_vkVoidFunction v3dvk_GetDeviceProcAddr(
 
    return device->dispatch.entrypoints[idx];
 }
+
+VkResult v3dvk_EnumerateDeviceExtensionProperties(
+    VkPhysicalDevice                              physicalDevice,
+    const char*                                   pLayerName,
+    uint32_t*                                     pPropertyCount,
+    VkExtensionProperties*                        pProperties)
+{
+   V3DVK_FROM_HANDLE(v3dvk_physical_device, device, physicalDevice);
+   VK_OUTARRAY_MAKE(out, pProperties, pPropertyCount);
+
+   for (int i = 0; i < V3DVK_DEVICE_EXTENSION_COUNT; i++) {
+      if (device->supported_extensions.extensions[i]) {
+         vk_outarray_append(&out, prop) {
+            *prop = v3dvk_device_extensions[i];
+         }
+      }
+   }
+
+   return vk_outarray_status(&out);
+}
