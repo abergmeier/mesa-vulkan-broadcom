@@ -219,9 +219,9 @@ v3dvk_enumerate_devices(struct v3dvk_instance *instance)
 
    for (unsigned i = 0; i < (unsigned)max_devices; i++) {
       if (devices[i]->available_nodes & 1 << DRM_NODE_RENDER &&
-          devices[i]->bustype == DRM_BUS_PCI &&
-          devices[i]->deviceinfo.pci->vendor_id == 0x8086) {
-
+          devices[i]->bustype == DRM_BUS_PLATFORM) {
+         // Seems like there is no information stored exposed in
+         // devices[i]->deviceinfo.platform
          result = v3dvk_physical_device_init(&instance->physicalDevice,
                                            instance, devices[i]);
          if (result != VK_ERROR_INCOMPATIBLE_DRIVER)
