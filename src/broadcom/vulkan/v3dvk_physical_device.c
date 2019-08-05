@@ -30,6 +30,8 @@
 
 #include <drm-uapi/v3d_drm.h>
 
+#include "git_sha1.h"
+
 #include "common.h"
 #include "device.h"
 #include "v3dvk_physical_device.h"
@@ -39,6 +41,7 @@
 #include <util/macros.h>
 #include <util/mesa-sha1.h>
 #include <util/ralloc.h>
+#include <util/u_string.h>
 #include <vulkan/util/vk_util.h>
 #include "v3dvk_macro.h"
 #include "wsi.h"
@@ -632,6 +635,242 @@ void v3dvk_GetPhysicalDeviceProperties(
             "%s", pdevice->name);
    memcpy(pProperties->pipelineCacheUUID,
           pdevice->pipeline_cache_uuid, VK_UUID_SIZE);
+}
+
+void v3dvk_GetPhysicalDeviceProperties2(
+    VkPhysicalDevice                            physicalDevice,
+    VkPhysicalDeviceProperties2*                pProperties)
+{
+   V3DVK_FROM_HANDLE(v3dvk_physical_device, pdevice, physicalDevice);
+
+   v3dvk_GetPhysicalDeviceProperties(physicalDevice, &pProperties->properties);
+
+   vk_foreach_struct(ext, pProperties->pNext) {
+      switch (ext->sType) {
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR: {
+         VkPhysicalDeviceDepthStencilResolvePropertiesKHR *props =
+            (VkPhysicalDeviceDepthStencilResolvePropertiesKHR *)ext;
+         props->supportedDepthResolveModes = 0;
+
+         /* Average doesn't make sense for stencil so we don't support that */
+         props->supportedStencilResolveModes = 0;
+         props->independentResolveNone = false;
+         props->independentResolve = false;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES_EXT: {
+         VkPhysicalDeviceDescriptorIndexingPropertiesEXT *props =
+            (VkPhysicalDeviceDescriptorIndexingPropertiesEXT *)ext;
+
+         /* It's a bit hard to exactly map our implementation to the limits
+          * described here.  The bindless surface handle in the extended
+          * message descriptors is 20 bits and it's an index into the table of
+          * RENDER_SURFACE_STATE structs that starts at bindless surface base
+          * address.  Given that most things consume two surface states per
+          * view (general/sampled for textures and write-only/read-write for
+          * images), we claim 2^19 things.
+          *
+          * For SSBOs, we just use A64 messages so there is no real limit
+          * there beyond the limit on the total size of a descriptor set.
+          */
+         const unsigned max_bindless_views = 0;
+
+         props->maxUpdateAfterBindDescriptorsInAllPools = max_bindless_views;
+         props->shaderUniformBufferArrayNonUniformIndexingNative = false;
+         props->shaderSampledImageArrayNonUniformIndexingNative = false;
+         props->shaderStorageBufferArrayNonUniformIndexingNative = false;
+         props->shaderStorageImageArrayNonUniformIndexingNative = false;
+         props->shaderInputAttachmentArrayNonUniformIndexingNative = false;
+         props->robustBufferAccessUpdateAfterBind = false;
+         props->quadDivergentImplicitLod = false;
+         props->maxPerStageDescriptorUpdateAfterBindSamplers = max_bindless_views;
+         props->maxPerStageDescriptorUpdateAfterBindUniformBuffers = 0;
+         props->maxPerStageDescriptorUpdateAfterBindStorageBuffers = 0;
+         props->maxPerStageDescriptorUpdateAfterBindSampledImages = max_bindless_views;
+         props->maxPerStageDescriptorUpdateAfterBindStorageImages = max_bindless_views;
+         props->maxPerStageDescriptorUpdateAfterBindInputAttachments = 0;
+         props->maxPerStageUpdateAfterBindResources = 0;
+         props->maxDescriptorSetUpdateAfterBindSamplers = max_bindless_views;
+         props->maxDescriptorSetUpdateAfterBindUniformBuffers = 0;
+         props->maxDescriptorSetUpdateAfterBindUniformBuffersDynamic = 0;
+         props->maxDescriptorSetUpdateAfterBindStorageBuffers = 0;
+         props->maxDescriptorSetUpdateAfterBindStorageBuffersDynamic = 0;
+         props->maxDescriptorSetUpdateAfterBindSampledImages = max_bindless_views;
+         props->maxDescriptorSetUpdateAfterBindStorageImages = max_bindless_views;
+         props->maxDescriptorSetUpdateAfterBindInputAttachments = 0;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES_KHR: {
+         VkPhysicalDeviceDriverPropertiesKHR *driver_props =
+            (VkPhysicalDeviceDriverPropertiesKHR *) ext;
+
+         driver_props->driverID = VK_DRIVER_ID_BROADCOM_OPEN_SOURCE_MESA_KHR;
+         util_snprintf(driver_props->driverName, VK_MAX_DRIVER_NAME_SIZE_KHR,
+                "Broadcom open-source Mesa driver");
+
+         util_snprintf(driver_props->driverInfo, VK_MAX_DRIVER_INFO_SIZE_KHR,
+                "Mesa " PACKAGE_VERSION MESA_GIT_SHA1);
+
+         driver_props->conformanceVersion = (VkConformanceVersionKHR) {
+            .major = 1,
+            .minor = 1,
+            .subminor = 2,
+            .patch = 0,
+         };
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_MEMORY_HOST_PROPERTIES_EXT: {
+         VkPhysicalDeviceExternalMemoryHostPropertiesEXT *props =
+            (VkPhysicalDeviceExternalMemoryHostPropertiesEXT *) ext;
+         /* Userptr needs page aligned memory. */
+         props->minImportedHostPointerAlignment = 4096;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES: {
+         VkPhysicalDeviceIDProperties *id_props =
+            (VkPhysicalDeviceIDProperties *)ext;
+         memcpy(id_props->deviceUUID, pdevice->device_uuid, VK_UUID_SIZE);
+         memcpy(id_props->driverUUID, pdevice->driver_uuid, VK_UUID_SIZE);
+         /* The LUID is for Windows. */
+         id_props->deviceLUIDValid = false;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT: {
+         VkPhysicalDeviceInlineUniformBlockPropertiesEXT *props =
+            (VkPhysicalDeviceInlineUniformBlockPropertiesEXT *)ext;
+         props->maxInlineUniformBlockSize = 0;
+         props->maxPerStageDescriptorInlineUniformBlocks =
+            0;
+         props->maxPerStageDescriptorUpdateAfterBindInlineUniformBlocks =
+            0;
+         props->maxDescriptorSetInlineUniformBlocks =
+            0;
+         props->maxDescriptorSetUpdateAfterBindInlineUniformBlocks =
+            0;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES: {
+         VkPhysicalDeviceMaintenance3Properties *props =
+            (VkPhysicalDeviceMaintenance3Properties *)ext;
+         /* This value doesn't matter for us today as our per-stage
+          * descriptors are the real limit.
+          */
+         props->maxPerSetDescriptors = 0;
+         props->maxMemoryAllocationSize = 0;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES: {
+         VkPhysicalDeviceMultiviewProperties *properties =
+            (VkPhysicalDeviceMultiviewProperties *)ext;
+         properties->maxMultiviewViewCount = 0;
+         properties->maxMultiviewInstanceIndex = 0;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_POINT_CLIPPING_PROPERTIES: {
+         VkPhysicalDevicePointClippingProperties *properties =
+            (VkPhysicalDevicePointClippingProperties *) ext;
+         properties->pointClippingBehavior = VK_POINT_CLIPPING_BEHAVIOR_USER_CLIP_PLANES_ONLY;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_PROPERTIES: {
+         VkPhysicalDeviceProtectedMemoryProperties *props =
+            (VkPhysicalDeviceProtectedMemoryProperties *)ext;
+         props->protectedNoFault = false;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR: {
+         VkPhysicalDevicePushDescriptorPropertiesKHR *properties =
+            (VkPhysicalDevicePushDescriptorPropertiesKHR *) ext;
+
+         properties->maxPushDescriptors = 0;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT: {
+         VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT *properties =
+            (VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT *)ext;
+         properties->filterMinmaxImageComponentMapping = false;
+         properties->filterMinmaxSingleComponentFormats = false;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES: {
+         VkPhysicalDeviceSubgroupProperties *properties = (void *)ext;
+
+         properties->subgroupSize = 0;
+
+         VkShaderStageFlags scalar_stages = 0;
+         for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+#if 0
+            if (pdevice->compiler->scalar_stage[stage])
+               scalar_stages |= mesa_to_vk_shader_stage(stage);
+#endif
+         }
+         properties->supportedStages = scalar_stages;
+
+         properties->supportedOperations = VK_SUBGROUP_FEATURE_BASIC_BIT |
+                                           VK_SUBGROUP_FEATURE_VOTE_BIT |
+                                           VK_SUBGROUP_FEATURE_ARITHMETIC_BIT |
+                                           VK_SUBGROUP_FEATURE_BALLOT_BIT |
+                                           VK_SUBGROUP_FEATURE_SHUFFLE_BIT |
+                                           VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT |
+                                           VK_SUBGROUP_FEATURE_CLUSTERED_BIT |
+                                           VK_SUBGROUP_FEATURE_QUAD_BIT;
+         properties->quadOperationsInAllStages = false;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT: {
+         VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT *props =
+            (VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT *)ext;
+
+         props->storageTexelBufferOffsetAlignmentBytes = 16;
+         props->storageTexelBufferOffsetSingleTexelAlignment = true;
+
+         props->uniformTexelBufferOffsetAlignmentBytes = 1;
+         props->uniformTexelBufferOffsetSingleTexelAlignment = false;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_PROPERTIES_EXT: {
+         VkPhysicalDeviceTransformFeedbackPropertiesEXT *props =
+            (VkPhysicalDeviceTransformFeedbackPropertiesEXT *)ext;
+
+         props->maxTransformFeedbackStreams = 0;
+         props->maxTransformFeedbackBuffers = 0;
+         props->maxTransformFeedbackBufferSize = 0;
+         props->maxTransformFeedbackStreamDataSize = 0;
+         props->maxTransformFeedbackBufferDataSize = 0;
+         props->maxTransformFeedbackBufferDataStride = 2048;
+         props->transformFeedbackQueries = false;
+         props->transformFeedbackStreamsLinesTriangles = false;
+         props->transformFeedbackRasterizationStreamSelect = false;
+         props->transformFeedbackDraw = false;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT: {
+         VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT *props =
+            (VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT *)ext;
+         props->maxVertexAttribDivisor = 0;
+         break;
+      }
+
+      default:
+         v3dvk_debug_ignored_stype(ext->sType);
+         break;
+      }
+   }
 }
 
 /* For now we support exactly one queue family. */
