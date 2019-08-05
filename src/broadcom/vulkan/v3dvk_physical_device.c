@@ -407,8 +407,12 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
    int master_fd = -1;
 
    fd = open(path, O_RDWR | O_CLOEXEC);
-   if (fd < 0)
+   if (fd < 0) {
+      if (errno == EACCES) {
+        return vk_error(VK_ERROR_INITIALIZATION_FAILED);
+      }
       return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
+   }
 
    device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
    device->instance = instance;
