@@ -223,7 +223,7 @@ v3dvk_enumerate_devices(struct v3dvk_instance *instance)
          // Seems like there is no information stored exposed in
          // devices[i]->deviceinfo.platform
          result = v3dvk_physical_device_init(&instance->physicalDevice,
-                                           instance, devices[i]);
+                                             instance, devices[i]);
          if (result != VK_ERROR_INCOMPATIBLE_DRIVER)
             break;
       }
