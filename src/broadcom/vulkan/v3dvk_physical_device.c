@@ -46,6 +46,84 @@
 #include "v3dvk_macro.h"
 #include "wsi.h"
 
+static VkResult
+v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
+{
+   const struct build_id_note *note =
+      build_id_find_nhdr_for_addr(v3dvk_physical_device_init_uuids);
+   if (!note) {
+      return vk_errorf(device->instance, device,
+                       VK_ERROR_INITIALIZATION_FAILED,
+                       "Failed to find build-id");
+   }
+
+   unsigned build_id_len = build_id_length(note);
+   if (build_id_len < 20) {
+      return vk_errorf(device->instance, device,
+                       VK_ERROR_INITIALIZATION_FAILED,
+                       "build-id too short.  It needs to be a SHA");
+   }
+
+   memcpy(device->driver_build_sha1, build_id_data(note), 20);
+
+   struct mesa_sha1 sha1_ctx;
+   uint8_t sha1[20];
+   STATIC_ASSERT(VK_UUID_SIZE <= sizeof(sha1));
+
+   /* The pipeline cache UUID is used for determining when a pipeline cache is
+    * invalid.  It needs both a driver build and the PCI ID of the device.
+    */
+   _mesa_sha1_init(&sha1_ctx);
+   _mesa_sha1_update(&sha1_ctx, build_id_data(note), build_id_len);
+   _mesa_sha1_update(&sha1_ctx, &device->info.ver,
+                     sizeof(device->info.ver));
+   _mesa_sha1_update(&sha1_ctx, &device->info.vpm_size,
+                     sizeof(device->info.vpm_size));
+   _mesa_sha1_update(&sha1_ctx, &device->info.qpu_count,
+                     sizeof(device->info.qpu_count));
+#if 0
+   _mesa_sha1_update(&sha1_ctx, &device->always_use_bindless,
+                     sizeof(device->always_use_bindless));
+   _mesa_sha1_update(&sha1_ctx, &device->has_a64_buffer_access,
+                     sizeof(device->has_a64_buffer_access));
+   _mesa_sha1_update(&sha1_ctx, &device->has_bindless_images,
+                     sizeof(device->has_bindless_images));
+   _mesa_sha1_update(&sha1_ctx, &device->has_bindless_samplers,
+                     sizeof(device->has_bindless_samplers));
+#endif
+   _mesa_sha1_final(&sha1_ctx, sha1);
+   memcpy(device->pipeline_cache_uuid, sha1, VK_UUID_SIZE);
+
+   /* The driver UUID is used for determining sharability of images and memory
+    * between two Vulkan instances in separate processes.  People who want to
+    * share memory need to also check the device UUID (below) so all this
+    * needs to be is the build-id.
+    */
+   memcpy(device->driver_uuid, build_id_data(note), VK_UUID_SIZE);
+
+   /* The device UUID uniquely identifies the given device within the machine.
+    * Since we never have more than one device, this doesn't need to be a real
+    * UUID.  However, on the off-chance that someone tries to use this to
+    * cache pre-tiled images or something of the like, we use the PCI ID and
+    * some bits of ISL info to ensure that this is safe.
+    */
+   _mesa_sha1_init(&sha1_ctx);
+   _mesa_sha1_update(&sha1_ctx, &device->info.ver,
+                     sizeof(device->info.ver));
+   _mesa_sha1_update(&sha1_ctx, &device->info.vpm_size,
+                     sizeof(device->info.vpm_size));
+   _mesa_sha1_update(&sha1_ctx, &device->info.qpu_count,
+                     sizeof(device->info.qpu_count));
+#if 0
+   _mesa_sha1_update(&sha1_ctx, &device->isl_dev.has_bit6_swizzling,
+                     sizeof(device->isl_dev.has_bit6_swizzling));
+#endif
+   _mesa_sha1_final(&sha1_ctx, sha1);
+   memcpy(device->device_uuid, sha1, VK_UUID_SIZE);
+
+   return VK_SUCCESS;
+}
+
 VkResult
 v3dvk_physical_device_init(struct v3dvk_physical_device *device,
                          struct v3dvk_instance *instance,
@@ -418,84 +496,6 @@ void v3dvk_GetPhysicalDeviceFeatures2(
          break;
       }
    }
-}
-
-static VkResult
-v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
-{
-   const struct build_id_note *note =
-      build_id_find_nhdr_for_addr(v3dvk_physical_device_init_uuids);
-   if (!note) {
-      return vk_errorf(device->instance, device,
-                       VK_ERROR_INITIALIZATION_FAILED,
-                       "Failed to find build-id");
-   }
-
-   unsigned build_id_len = build_id_length(note);
-   if (build_id_len < 20) {
-      return vk_errorf(device->instance, device,
-                       VK_ERROR_INITIALIZATION_FAILED,
-                       "build-id too short.  It needs to be a SHA");
-   }
-
-   memcpy(device->driver_build_sha1, build_id_data(note), 20);
-
-   struct mesa_sha1 sha1_ctx;
-   uint8_t sha1[20];
-   STATIC_ASSERT(VK_UUID_SIZE <= sizeof(sha1));
-
-   /* The pipeline cache UUID is used for determining when a pipeline cache is
-    * invalid.  It needs both a driver build and the PCI ID of the device.
-    */
-   _mesa_sha1_init(&sha1_ctx);
-   _mesa_sha1_update(&sha1_ctx, build_id_data(note), build_id_len);
-   _mesa_sha1_update(&sha1_ctx, &device->info.ver,
-                     sizeof(device->info.ver));
-   _mesa_sha1_update(&sha1_ctx, &device->info.vpm_size,
-                     sizeof(device->info.vpm_size));
-   _mesa_sha1_update(&sha1_ctx, &device->info.qpu_count,
-                     sizeof(device->info.qpu_count));
-#if 0
-   _mesa_sha1_update(&sha1_ctx, &device->always_use_bindless,
-                     sizeof(device->always_use_bindless));
-   _mesa_sha1_update(&sha1_ctx, &device->has_a64_buffer_access,
-                     sizeof(device->has_a64_buffer_access));
-   _mesa_sha1_update(&sha1_ctx, &device->has_bindless_images,
-                     sizeof(device->has_bindless_images));
-   _mesa_sha1_update(&sha1_ctx, &device->has_bindless_samplers,
-                     sizeof(device->has_bindless_samplers));
-#endif
-   _mesa_sha1_final(&sha1_ctx, sha1);
-   memcpy(device->pipeline_cache_uuid, sha1, VK_UUID_SIZE);
-
-   /* The driver UUID is used for determining sharability of images and memory
-    * between two Vulkan instances in separate processes.  People who want to
-    * share memory need to also check the device UUID (below) so all this
-    * needs to be is the build-id.
-    */
-   memcpy(device->driver_uuid, build_id_data(note), VK_UUID_SIZE);
-
-   /* The device UUID uniquely identifies the given device within the machine.
-    * Since we never have more than one device, this doesn't need to be a real
-    * UUID.  However, on the off-chance that someone tries to use this to
-    * cache pre-tiled images or something of the like, we use the PCI ID and
-    * some bits of ISL info to ensure that this is safe.
-    */
-   _mesa_sha1_init(&sha1_ctx);
-   _mesa_sha1_update(&sha1_ctx, &device->info.ver,
-                     sizeof(device->info.ver));
-   _mesa_sha1_update(&sha1_ctx, &device->info.vpm_size,
-                     sizeof(device->info.vpm_size));
-   _mesa_sha1_update(&sha1_ctx, &device->info.qpu_count,
-                     sizeof(device->info.qpu_count));
-#if 0
-   _mesa_sha1_update(&sha1_ctx, &device->isl_dev.has_bit6_swizzling,
-                     sizeof(device->isl_dev.has_bit6_swizzling));
-#endif
-   _mesa_sha1_final(&sha1_ctx, sha1);
-   memcpy(device->device_uuid, sha1, VK_UUID_SIZE);
-
-   return VK_SUCCESS;
 }
 
 void v3dvk_GetPhysicalDeviceProperties(
