@@ -178,6 +178,8 @@ wsi_device_matches_drm_fd(const struct wsi_device *wsi, int drm_fd)
 
    default:
       break;
+      fprintf(stderr, "Unhandled bustype: %i\n", fd_device->bustype);
+      abort();
    }
 
    drmFreeDevice(&fd_device);
