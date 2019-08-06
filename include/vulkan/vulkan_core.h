@@ -480,6 +480,7 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_PERFORMANCE_CONFIGURATION_ACQUIRE_INFO_INTEL = 1000210005,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES_KHR = 1000211000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT = 1000212000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PLATFORM_BUS_INFO_PROPERTIES_EXT = 1000212010,
     VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD = 1000213000,
     VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD = 1000213001,
     VK_STRUCTURE_TYPE_IMAGEPIPE_SURFACE_CREATE_INFO_FUCHSIA = 1000214000,
@@ -9350,6 +9351,15 @@ typedef struct VkPhysicalDevicePCIBusInfoPropertiesEXT {
     uint32_t           pciFunction;
 } VkPhysicalDevicePCIBusInfoPropertiesEXT;
 
+
+#define VK_EXT_platform_bus_info 1
+#define VK_EXT_PLATFORM_BUS_INFO_SPEC_VERSION  1
+#define VK_EXT_PLATFORM_BUS_INFO_EXTENSION_NAME "VK_EXT_platform_bus_info"
+typedef struct VkPhysicalDevicePlatformBusInfoPropertiesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    char               platformFullname[512];
+} VkPhysicalDevicePlatformBusInfoPropertiesEXT;
 
 
 #define VK_AMD_display_native_hdr 1

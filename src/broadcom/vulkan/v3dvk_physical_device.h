@@ -49,6 +49,8 @@ struct v3dvk_physical_device {
     /** True if we can use bindless access for samplers */
     bool                                        has_bindless_samplers;
 #endif
+    drmPlatformBusInfo bus_info;
+
     struct v3dvk_device_extension_table         supported_extensions;
 #if 0
     uint32_t                                    eu_total;

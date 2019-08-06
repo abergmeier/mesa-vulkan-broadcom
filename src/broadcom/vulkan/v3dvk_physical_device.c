@@ -76,6 +76,9 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
       goto fail;
    }
 
+   strncpy(device->bus_info.fullname, drm_device->businfo.platform->fullname, ARRAY_SIZE(device->bus_info.fullname));
+   device->bus_info.fullname[ARRAY_SIZE(device->bus_info.fullname) - 1] = '\0';
+
    device->name = v3d_get_device_name(&device->info);
    if (!device->name) {
       result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
@@ -775,6 +778,14 @@ void v3dvk_GetPhysicalDeviceProperties2(
             (VkPhysicalDeviceMultiviewProperties *)ext;
          properties->maxMultiviewViewCount = 0;
          properties->maxMultiviewInstanceIndex = 0;
+         break;
+      }
+
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PLATFORM_BUS_INFO_PROPERTIES_EXT: {
+         VkPhysicalDevicePlatformBusInfoPropertiesEXT *properties =
+            (VkPhysicalDevicePlatformBusInfoPropertiesEXT *)ext;
+         strncpy(properties->platformFullname, pdevice->bus_info.fullname, ARRAY_SIZE(properties->platformFullname));
+         properties->platformFullname[ARRAY_SIZE(properties->platformFullname) - 1] = '\0';
          break;
       }
 
