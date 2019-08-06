@@ -46,6 +46,106 @@
 #include "v3dvk_macro.h"
 #include "wsi.h"
 
+VkResult
+v3dvk_physical_device_init(struct v3dvk_physical_device *device,
+                         struct v3dvk_instance *instance,
+                         drmDevicePtr drm_device)
+{
+   const char *primary_path = drm_device->nodes[DRM_NODE_PRIMARY];
+   const char *path = drm_device->nodes[DRM_NODE_RENDER];
+   VkResult result;
+   int fd;
+   int master_fd = -1;
+
+   fd = open(path, O_RDWR | O_CLOEXEC);
+   if (fd < 0) {
+      if (errno == EACCES) {
+        return vk_error(VK_ERROR_INITIALIZATION_FAILED);
+      }
+      return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
+   }
+
+   device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
+   device->instance = instance;
+
+   assert(strlen(path) < ARRAY_SIZE(device->path));
+   snprintf(device->path, ARRAY_SIZE(device->path), "%s", path);
+
+   if (!v3d_get_device_info(fd, &device->info, drmIoctl)) {
+      result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
+      goto fail;
+   }
+
+   device->name = v3d_get_device_name(&device->info);
+   if (!device->name) {
+      result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
+      goto fail;
+   }
+
+   if (device->info.ver == 42) {
+      /* Videocore 6 fully supported */
+   } else {
+      result = vk_errorf(device->instance, device,
+                         VK_ERROR_INCOMPATIBLE_DRIVER,
+                         "Vulkan not yet supported on %s", device->name);
+      goto fail;
+   }
+
+#if 0
+   result = v3dvk_physical_device_init_heaps(device, fd);
+   if (result != VK_SUCCESS)
+      goto fail;
+#endif
+
+   result = v3dvk_physical_device_init_uuids(device);
+   if (result != VK_SUCCESS)
+      goto fail;
+#if 0
+   if (instance->enabled_extensions.KHR_display) {
+#else
+   if (0) {
+#endif
+      master_fd = open(primary_path, O_RDWR | O_CLOEXEC);
+#if 0
+      if (master_fd >= 0) {
+         /* prod the device with a GETPARAM call which will fail if
+          * we don't have permission to even render on this device
+          */
+         if (anv_gem_get_param(master_fd, I915_PARAM_CHIPSET_ID) == 0) {
+            close(master_fd);
+            master_fd = -1;
+         }
+      }
+#endif
+   }
+
+   device->master_fd = master_fd;
+
+   result = v3dvk_init_wsi(device);
+   if (result != VK_SUCCESS) {
+      goto fail;
+   }
+
+   device->local_fd = fd;
+
+   return VK_SUCCESS;
+
+fail:
+   close(fd);
+   if (master_fd != -1)
+      close(master_fd);
+   return result;
+}
+
+void
+v3dvk_physical_device_finish(struct v3dvk_physical_device *device)
+{
+   v3dvk_finish_wsi(device);
+   close(device->local_fd);
+   if (device->master_fd >= 0)
+      close(device->master_fd);
+}
+
 void v3dvk_GetPhysicalDeviceFeatures(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceFeatures*                   pFeatures)
@@ -393,106 +493,6 @@ v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
    memcpy(device->device_uuid, sha1, VK_UUID_SIZE);
 
    return VK_SUCCESS;
-}
-
-VkResult
-v3dvk_physical_device_init(struct v3dvk_physical_device *device,
-                         struct v3dvk_instance *instance,
-                         drmDevicePtr drm_device)
-{
-   const char *primary_path = drm_device->nodes[DRM_NODE_PRIMARY];
-   const char *path = drm_device->nodes[DRM_NODE_RENDER];
-   VkResult result;
-   int fd;
-   int master_fd = -1;
-
-   fd = open(path, O_RDWR | O_CLOEXEC);
-   if (fd < 0) {
-      if (errno == EACCES) {
-        return vk_error(VK_ERROR_INITIALIZATION_FAILED);
-      }
-      return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
-   }
-
-   device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
-   device->instance = instance;
-
-   assert(strlen(path) < ARRAY_SIZE(device->path));
-   snprintf(device->path, ARRAY_SIZE(device->path), "%s", path);
-
-   if (!v3d_get_device_info(fd, &device->info, drmIoctl)) {
-      result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
-      goto fail;
-   }
-
-   device->name = v3d_get_device_name(&device->info);
-   if (!device->name) {
-      result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
-      goto fail;
-   }
-
-   if (device->info.ver == 42) {
-      /* Videocore 6 fully supported */
-   } else {
-      result = vk_errorf(device->instance, device,
-                         VK_ERROR_INCOMPATIBLE_DRIVER,
-                         "Vulkan not yet supported on %s", device->name);
-      goto fail;
-   }
-
-#if 0
-   result = v3dvk_physical_device_init_heaps(device, fd);
-   if (result != VK_SUCCESS)
-      goto fail;
-#endif
-
-   result = v3dvk_physical_device_init_uuids(device);
-   if (result != VK_SUCCESS)
-      goto fail;
-#if 0
-   if (instance->enabled_extensions.KHR_display) {
-#else
-   if (0) {
-#endif
-      master_fd = open(primary_path, O_RDWR | O_CLOEXEC);
-#if 0
-      if (master_fd >= 0) {
-         /* prod the device with a GETPARAM call which will fail if
-          * we don't have permission to even render on this device
-          */
-         if (anv_gem_get_param(master_fd, I915_PARAM_CHIPSET_ID) == 0) {
-            close(master_fd);
-            master_fd = -1;
-         }
-      }
-#endif
-   }
-
-   device->master_fd = master_fd;
-
-   result = v3dvk_init_wsi(device);
-   if (result != VK_SUCCESS) {
-      goto fail;
-   }
-
-   device->local_fd = fd;
-
-   return VK_SUCCESS;
-
-fail:
-   close(fd);
-   if (master_fd != -1)
-      close(master_fd);
-   return result;
-}
-
-void
-v3dvk_physical_device_finish(struct v3dvk_physical_device *device)
-{
-   v3dvk_finish_wsi(device);
-   close(device->local_fd);
-   if (device->master_fd >= 0)
-      close(device->master_fd);
 }
 
 void v3dvk_GetPhysicalDeviceProperties(
