@@ -631,7 +631,7 @@ void v3dvk_GetPhysicalDeviceProperties(
    *pProperties = (VkPhysicalDeviceProperties) {
       .apiVersion = v3dvk_physical_device_api_version(pdevice),
       .driverVersion = vk_get_driver_version(),
-      .vendorID = 0x8086,
+      .vendorID = 0x0000,
       .deviceID = pdevice->info.ver,
       .deviceType = VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU,
       .limits = limits,
