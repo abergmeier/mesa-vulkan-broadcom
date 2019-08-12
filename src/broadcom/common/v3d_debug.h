@@ -57,6 +57,7 @@ extern uint32_t V3D_DEBUG;
 #define V3D_DEBUG_ALWAYS_FLUSH		(1 << 12)
 #define V3D_DEBUG_CLIF			(1 << 13)
 #define V3D_DEBUG_PRECOMPILE		(1 << 14)
+#define V3D_DEBUG_STARTUP		(1 << 20)
 
 #define dbg_printf(...)	fprintf(stderr, __VA_ARGS__)
 

@@ -9,6 +9,7 @@
 #include "vk_debug_report.h"
 #include "valgrind.h"
 #include <xf86drm.h>
+#include "common/v3d_debug.h"
 #include <vulkan/vulkan_broadcom.h>
 #include "v3dvk_macro.h"
 #include "vulkan/util/vk_util.h"
@@ -46,6 +47,7 @@ VkResult v3dvk_EnumerateInstanceExtensionProperties(
     uint32_t*                                   pPropertyCount,
     VkExtensionProperties*                      pProperties)
 {
+   DBG(V3D_DEBUG_STARTUP, "v3dvk_EnumerateInstanceExtensionProperties: %s\n", pLayerName);
    VK_OUTARRAY_MAKE(out, pProperties, pPropertyCount);
 
    for (int i = 0; i < V3DVK_INSTANCE_EXTENSION_COUNT; i++) {
@@ -98,6 +100,8 @@ VkResult v3dvk_CreateInstance(
                          VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
    if (!instance)
       return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   DBG(V3D_DEBUG_STARTUP, "v3dvk_CreateInstance %p\n", instance);
 
    instance->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 
@@ -181,6 +185,8 @@ void v3dvk_DestroyInstance(
 {
    V3DVK_FROM_HANDLE(v3dvk_instance, instance, _instance);
 
+   DBG(V3D_DEBUG_STARTUP, "v3dvk_DestroyInstance %p\n", instance);
+
    if (!instance)
       return;
 
@@ -239,6 +245,7 @@ v3dvk_enumerate_devices(struct v3dvk_instance *instance)
 static VkResult
 v3dvk_instance_ensure_physical_device(struct v3dvk_instance *instance)
 {
+   DBG(V3D_DEBUG_STARTUP, "v3dvk_instance_ensure_physical_device: %i\n", instance->physicalDeviceCount);
    if (instance->physicalDeviceCount < 0) {
       VkResult result = v3dvk_enumerate_devices(instance);
       if (result != VK_SUCCESS &&
@@ -254,6 +261,7 @@ VkResult v3dvk_EnumeratePhysicalDevices(
     uint32_t*                                   pPhysicalDeviceCount,
     VkPhysicalDevice*                           pPhysicalDevices)
 {
+   DBG(V3D_DEBUG_STARTUP, "v3dvk_EnumeratePhysicalDevices %p\n", pPhysicalDeviceCount);
    V3DVK_FROM_HANDLE(v3dvk_instance, instance, _instance);
    VK_OUTARRAY_MAKE(out, pPhysicalDevices, pPhysicalDeviceCount);
 
