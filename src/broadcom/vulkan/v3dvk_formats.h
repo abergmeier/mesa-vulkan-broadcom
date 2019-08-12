@@ -24,6 +24,7 @@
 #ifndef V3DVK_FORMATS_H
 #define V3DVK_FORMATS_H
 
+#include <stdbool.h>
 #include <vulkan/vulkan.h>
 
 struct v3dvk_format {
