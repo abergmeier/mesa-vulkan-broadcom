@@ -85,6 +85,7 @@ libv3dvk_files = files(
   'common.h',
   'device.c',
   'device.h',
+  'genv3dvk_cmd_buffer.c',
   'icd.c',
   'instance.c',
   'instance.h',
