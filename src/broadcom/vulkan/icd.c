@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "util/macros.h"
+#include "common/v3d_debug.h"
 #include "instance.h"
 #include "v3dvk_entrypoints.h"
 
@@ -39,6 +40,7 @@ PFN_vkVoidFunction v3dvk_GetInstanceProcAddr(
    if (idx >= 0)
       return instance->device_dispatch.entrypoints[idx];
 
+   DBG(V3D_DEBUG_STARTUP, "v3dvk_GetInstanceProcAddr failed for %s\n", pName);
    // TODO: Implement
    return NULL;
 }
