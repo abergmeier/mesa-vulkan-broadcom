@@ -311,3 +311,16 @@ VkResult v3dvk_EnumeratePhysicalDeviceGroups(
 
    return vk_outarray_status(&out);
 }
+
+VkResult v3dvk_EnumerateInstanceLayerProperties(
+    uint32_t*                                   pPropertyCount,
+    VkLayerProperties*                          pProperties)
+{
+   if (pProperties == NULL) {
+      *pPropertyCount = 0;
+      return VK_SUCCESS;
+   }
+
+   /* None supported at this time */
+   return vk_error(VK_ERROR_LAYER_NOT_PRESENT);
+}

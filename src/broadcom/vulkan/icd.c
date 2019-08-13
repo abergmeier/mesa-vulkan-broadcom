@@ -23,9 +23,7 @@ PFN_vkVoidFunction v3dvk_GetInstanceProcAddr(
    if (strcmp(pName, "vk" #entrypoint) == 0) \
       return (PFN_vkVoidFunction)v3dvk_##entrypoint
    LOOKUP_V3DVK_ENTRYPOINT(EnumerateInstanceExtensionProperties);
-#if 0
    LOOKUP_V3DVK_ENTRYPOINT(EnumerateInstanceLayerProperties);
-#endif
    LOOKUP_V3DVK_ENTRYPOINT(EnumerateInstanceVersion);
    LOOKUP_V3DVK_ENTRYPOINT(CreateInstance);
 
