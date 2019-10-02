@@ -21,23 +21,12 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef V3DVK_DEFINES_H
-#define V3DVK_DEFINES_H
+#ifndef GEN_V3DVK_CMD_BUFFER_H
+#define GEN_V3DVK_CMD_BUFFER_H
 
-#define MAX_VIEWPORTS   16
-#define MAX_SCISSORS    16
-#define MAX_XFB_BUFFERS  4
+struct v3dvk_cmd_buffer;
 
-#define MAX_PUSH_DESCRIPTORS 32 /* Minimum requirement */
+void
+v3dvk_cmd_buffer_flush_state(struct v3dvk_cmd_buffer *cmd_buffer);
 
-/* A non-fatal assert.  Useful for debugging. */
-#ifdef DEBUG
-#define v3dvk_assert(x) ({ \
-   if (unlikely(!(x))) \
-      broadcom_loge("%s:%d ASSERT: %s", __FILE__, __LINE__, #x); \
-})
-#else
-#define v3dvk_assert(x)
-#endif
-
-#endif
+#endif // GEN_V3DVK_CMD_BUFFER_H

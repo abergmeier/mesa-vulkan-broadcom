@@ -43,8 +43,10 @@
 #include <util/ralloc.h>
 #include <util/u_string.h>
 #include <vulkan/util/vk_util.h>
+#include "v3dvk_defines.h"
 #include "v3dvk_macro.h"
 #include "wsi.h"
+#include "compiler/v3d_compiler.h"
 
 static VkResult
 v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
@@ -178,6 +180,12 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
       goto fail;
 #endif
 
+   device->compiler = v3d_compiler_init(&device->info);
+   if (device->compiler == NULL) {
+      result = vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+      goto fail;
+   }
+
    result = v3dvk_physical_device_init_uuids(device);
    if (result != VK_SUCCESS)
       goto fail;
@@ -222,6 +230,7 @@ void
 v3dvk_physical_device_finish(struct v3dvk_physical_device *device)
 {
    v3dvk_finish_wsi(device);
+   v3d_compiler_free(device->compiler);
    close(device->local_fd);
    if (device->master_fd >= 0)
       close(device->master_fd);
@@ -862,7 +871,7 @@ void v3dvk_GetPhysicalDeviceProperties2(
             (VkPhysicalDeviceTransformFeedbackPropertiesEXT *)ext;
 
          props->maxTransformFeedbackStreams = 0;
-         props->maxTransformFeedbackBuffers = 0;
+         props->maxTransformFeedbackBuffers = MAX_XFB_BUFFERS;
          props->maxTransformFeedbackBufferSize = 0;
          props->maxTransformFeedbackStreamDataSize = 0;
          props->maxTransformFeedbackBufferDataSize = 0;

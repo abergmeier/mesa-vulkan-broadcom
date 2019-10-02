@@ -28,7 +28,9 @@ struct v3dvk_physical_device {
      * the total system ram to try and avoid running out of RAM.
      */
     bool                                        supports_48bit_addresses;
-    struct brw_compiler *                       compiler;
+#endif
+    struct v3d_compiler *                       compiler;
+#if 0
     struct isl_device                           isl_dev;
     int                                         cmd_parser_version;
     bool                                        has_exec_async;

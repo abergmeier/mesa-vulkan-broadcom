@@ -73,6 +73,7 @@ V3DVK_DEFINE_HANDLE_CASTS(v3dvk_instance, VkInstance)
 V3DVK_DEFINE_HANDLE_CASTS(v3dvk_physical_device, VkPhysicalDevice)
 V3DVK_DEFINE_HANDLE_CASTS(v3dvk_queue, VkQueue)
 
+V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_buffer, VkBuffer)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_cmd_pool, VkCommandPool)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_fence, VkFence)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_framebuffer, VkFramebuffer)

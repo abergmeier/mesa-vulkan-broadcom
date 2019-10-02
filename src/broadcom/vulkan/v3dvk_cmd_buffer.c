@@ -22,6 +22,7 @@
  */
 
 #include "common.h"
+#include "v3dvk_buffer.h"
 #include "v3dvk_cmd_buffer.h"
 #include "v3dvk_cmd_pool.h"
 #include "v3dvk_entrypoints.h"
@@ -125,4 +126,33 @@ v3dvk_cmd_buffer_reset(struct v3dvk_cmd_buffer *cmd_buffer)
                          &cmd_buffer->device->dynamic_state_pool, 16384);
 #endif
    return VK_SUCCESS;
+}
+
+void v3dvk_CmdBindTransformFeedbackBuffersEXT(
+    VkCommandBuffer                             commandBuffer,
+    uint32_t                                    firstBinding,
+    uint32_t                                    bindingCount,
+    const VkBuffer*                             pBuffers,
+    const VkDeviceSize*                         pOffsets,
+    const VkDeviceSize*                         pSizes)
+{
+   V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd_buffer, commandBuffer);
+   struct v3dvk_xfb_binding *xfb = cmd_buffer->state.xfb_bindings;
+
+   /* We have to defer setting up vertex buffer since we need the buffer
+    * stride from the pipeline. */
+
+   assert(firstBinding + bindingCount <= MAX_XFB_BUFFERS);
+   for (uint32_t i = 0; i < bindingCount; i++) {
+      if (pBuffers[i] == VK_NULL_HANDLE) {
+         xfb[firstBinding + i].buffer = NULL;
+      } else {
+         V3DVK_FROM_HANDLE(v3dvk_buffer, buffer, pBuffers[i]);
+         xfb[firstBinding + i].buffer = buffer;
+         xfb[firstBinding + i].offset = pOffsets[i];
+         xfb[firstBinding + i].size =
+            v3dvk_buffer_get_range(buffer, pOffsets[i],
+                                   pSizes ? pSizes[i] : VK_WHOLE_SIZE);
+      }
+   }
 }

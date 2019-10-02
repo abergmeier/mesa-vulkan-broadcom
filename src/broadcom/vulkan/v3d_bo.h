@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015 Intel Corporation
+ * Copyright © 2014-2017 Broadcom
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,23 +21,38 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef V3DVK_DEFINES_H
-#define V3DVK_DEFINES_H
+#ifndef VC5_BO_H
+#define VC5_BO_H
 
-#define MAX_VIEWPORTS   16
-#define MAX_SCISSORS    16
-#define MAX_XFB_BUFFERS  4
+#include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
+#include "util/list.h"
 
-#define MAX_PUSH_DESCRIPTORS 32 /* Minimum requirement */
-
-/* A non-fatal assert.  Useful for debugging. */
-#ifdef DEBUG
-#define v3dvk_assert(x) ({ \
-   if (unlikely(!(x))) \
-      broadcom_loge("%s:%d ASSERT: %s", __FILE__, __LINE__, #x); \
-})
-#else
-#define v3dvk_assert(x)
+struct v3d_bo {
+#if 0
+        struct pipe_reference reference;
+        struct v3d_screen *screen;
+        void *map;
 #endif
+        const char *name;
+        uint32_t handle;
+        uint32_t size;
 
-#endif
+        /* Address of the BO in our page tables. */
+        uint32_t offset;
+
+        /** Entry in the linked list of buffers freed, by age. */
+        struct list_head time_list;
+        /** Entry in the per-page-count linked list of buffers freed (by age). */
+        struct list_head size_list;
+        /** Approximate second when the bo was freed. */
+        time_t free_time;
+        /**
+         * Whether only our process has a reference to the BO (meaning that
+         * it's safe to reuse it in the BO cache).
+         */
+        bool private;
+};
+
+#endif /* VC5_BO_H */

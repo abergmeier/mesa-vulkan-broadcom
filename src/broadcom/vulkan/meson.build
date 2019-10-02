@@ -85,7 +85,6 @@ libv3dvk_files = files(
   'common.h',
   'device.c',
   'device.h',
-  'genv3dvk_cmd_buffer.c',
   'icd.c',
   'instance.c',
   'instance.h',
@@ -105,9 +104,25 @@ libv3dvk_files = files(
   'wsi.c',
 )
 
+libv3dvk_gen_lib = static_library(
+  'v3dvk_gen',
+  ['genv3dvk_cmd_buffer.c'],
+  include_directories : [
+    inc_common, inc_compiler, inc_include, inc_broadcom, inc_vulkan_wsi,
+  ],
+  c_args : [
+    c_vis_args, no_override_init_args,
+  ],
+  dependencies : [
+    dep_libdrm, dep_valgrind, idep_nir_headers, idep_vulkan_util_headers,
+  ],
+)
+
+
 v3dvk_deps = [
   dep_libdrm,
   dep_valgrind,
+  idep_nir_headers,
   idep_vulkan_util_headers,
 ]
 v3dvk_flags = [
@@ -135,7 +150,7 @@ libvulkan_broadcom = shared_library(
   include_directories : [
     inc_common, inc_broadcom, inc_common, inc_src,
   ],
-  link_whole : [libv3dvk_common],
+  link_whole : [libv3dvk_common, libv3dvk_gen_lib],
   link_with : [
     libcompiler, libbroadcom_cle, libbroadcom_v3d,
     libvulkan_wsi, libmesa_util,

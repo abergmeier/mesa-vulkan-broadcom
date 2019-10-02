@@ -34,6 +34,12 @@
 struct v3dvk_cmd_pool;
 struct v3dvk_device;
 
+struct v3dvk_xfb_binding {
+   struct v3dvk_buffer *                        buffer;
+   VkDeviceSize                                 offset;
+   VkDeviceSize                                 size;
+};
+
 struct v3dvk_dynamic_state {
    struct {
       uint32_t                                  count;
@@ -129,6 +135,27 @@ struct v3dvk_cmd_pipeline_state {
 #endif
 };
 
+enum v3dvk_cmd_dirty_bits {
+#if 0
+   ANV_CMD_DIRTY_DYNAMIC_VIEWPORT                  = 1 << 0, /* VK_DYNAMIC_STATE_VIEWPORT */
+   ANV_CMD_DIRTY_DYNAMIC_SCISSOR                   = 1 << 1, /* VK_DYNAMIC_STATE_SCISSOR */
+   ANV_CMD_DIRTY_DYNAMIC_LINE_WIDTH                = 1 << 2, /* VK_DYNAMIC_STATE_LINE_WIDTH */
+   ANV_CMD_DIRTY_DYNAMIC_DEPTH_BIAS                = 1 << 3, /* VK_DYNAMIC_STATE_DEPTH_BIAS */
+   ANV_CMD_DIRTY_DYNAMIC_BLEND_CONSTANTS           = 1 << 4, /* VK_DYNAMIC_STATE_BLEND_CONSTANTS */
+   ANV_CMD_DIRTY_DYNAMIC_DEPTH_BOUNDS              = 1 << 5, /* VK_DYNAMIC_STATE_DEPTH_BOUNDS */
+   ANV_CMD_DIRTY_DYNAMIC_STENCIL_COMPARE_MASK      = 1 << 6, /* VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK */
+   ANV_CMD_DIRTY_DYNAMIC_STENCIL_WRITE_MASK        = 1 << 7, /* VK_DYNAMIC_STATE_STENCIL_WRITE_MASK */
+   ANV_CMD_DIRTY_DYNAMIC_STENCIL_REFERENCE         = 1 << 8, /* VK_DYNAMIC_STATE_STENCIL_REFERENCE */
+   ANV_CMD_DIRTY_DYNAMIC_ALL                       = (1 << 9) - 1,
+   ANV_CMD_DIRTY_PIPELINE                          = 1 << 9,
+   ANV_CMD_DIRTY_INDEX_BUFFER                      = 1 << 10,
+   ANV_CMD_DIRTY_RENDER_TARGETS                    = 1 << 11,
+#endif
+   V3DVK_CMD_DIRTY_XFB_ENABLE                      = 1 << 12,
+};
+
+typedef uint32_t v3dvk_cmd_dirty_mask_t;
+
 /** State tracking for graphics pipeline
  *
  * This has v3dvk_cmd_pipeline_state as a base struct to track things which get
@@ -138,8 +165,8 @@ struct v3dvk_cmd_pipeline_state {
  */
 struct v3dvk_cmd_graphics_state {
    struct v3dvk_cmd_pipeline_state base;
+   v3dvk_cmd_dirty_mask_t dirty;
 #if 0
-   anv_cmd_dirty_mask_t dirty;
    uint32_t vb_dirty;
 #endif
    struct v3dvk_dynamic_state dynamic;
@@ -189,8 +216,10 @@ struct v3dvk_cmd_state {
    VkRect2D                                     render_area;
    uint32_t                                     restart_index;
    struct anv_vertex_binding                    vertex_bindings[MAX_VBS];
+#endif
    bool                                         xfb_enabled;
-   struct anv_xfb_binding                       xfb_bindings[MAX_XFB_BUFFERS];
+   struct v3dvk_xfb_binding                     xfb_bindings[MAX_XFB_BUFFERS];
+#if 0
    VkShaderStageFlags                           push_constant_stages;
    struct anv_push_constants                    push_constants[MESA_SHADER_STAGES];
    struct anv_state                             binding_tables[MESA_SHADER_STAGES];
@@ -236,9 +265,9 @@ struct v3dvk_cmd_state {
 struct v3dvk_cmd_buffer {
    VK_LOADER_DATA                               _loader_data;
 
-   struct v3dvk_device *                          device;
+   struct v3dvk_device *                        device;
 
-   struct v3dvk_cmd_pool *                        pool;
+   struct v3dvk_cmd_pool *                      pool;
    struct list_head                             pool_link;
 
    struct v3dvk_batch                           batch;

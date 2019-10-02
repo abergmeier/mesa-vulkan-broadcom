@@ -58,4 +58,38 @@ v3dvk_batch_has_error(struct v3dvk_batch *batch)
    return batch->status != VK_SUCCESS;
 }
 
+/* Wrapper macros needed to work around preprocessor argument issues.  In
+ * particular, arguments don't get pre-evaluated if they are concatenated.
+ * This means that, if you pass GENX(3DSTATE_PS) into the emit macro, the
+ * GENX macro won't get evaluated if the emit macro contains "cmd ## foo".
+ * We can work around this easily enough with these helpers.
+ */
+#define __v3dvk_cmd_length(cmd) cmd ## _length
+#define __v3dvk_cmd_length_bias(cmd) cmd ## _length_bias
+#define __v3dvk_cmd_header(cmd) cmd ## _header
+#define __v3dvk_cmd_pack(cmd) cmd ## _pack
+
+#define cl_emit(cl, packet, name)                                \
+        for (struct cl_packet_struct(packet) name = {            \
+                cl_packet_header(packet)                         \
+        },                                                       \
+        *_loop_terminate = &name;                                \
+        __builtin_expect(_loop_terminate != NULL, 1);            \
+        ({                                                       \
+                struct v3d_cl_out *cl_out = cl_start(cl);        \
+                cl_packet_pack(packet)(cl, (uint8_t *)cl_out, &name); \
+                cl_advance(&cl_out, cl_packet_length(packet));   \
+                cl_end(cl, cl_out);                              \
+                _loop_terminate = NULL;                          \
+        }))                                                      \
+
+#define v3dvk_batch_emit(batch, cmd, name)                              \
+   for (struct cmd name = { __v3dvk_cmd_header(cmd) },                  \
+        *_dst = v3dvk_batch_emit_dwords(batch, __v3dvk_cmd_length(cmd));\
+        __builtin_expect(_dst != NULL, 1);                              \
+        ({ __v3dvk_cmd_pack(cmd)(batch, _dst, &name);                   \
+           VG(VALGRIND_CHECK_MEM_IS_DEFINED(_dst, __v3dvk_cmd_length(cmd) * 4)); \
+           _dst = NULL;                                                 \
+         }))
+
 #endif

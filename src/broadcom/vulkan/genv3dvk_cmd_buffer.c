@@ -23,9 +23,17 @@
 
 #include <assert.h>
 #include <vulkan/vulkan.h>
+// Needs to be in front to define certain symbols
+#include "v3d_cl.h"
+#define V3D_VERSION 42
+#include "cle/v3dx_pack.h"
 #include "common.h"
 #include "v3dvk_cmd_buffer.h"
+#include "genv3dvk_cmd_buffer.h"
 #include "v3dvk_entrypoints.h"
+
+#define GENX(X) V3D42_##X
+#define genX(x) V3D42_##x
 
 /**
  * Setup anv_cmd_state::attachments for vkCmdBeginRenderPass.
@@ -292,4 +300,163 @@ v3dvk_BeginCommandBuffer(
 #endif
 #endif
    return result;
+}
+
+void
+v3dvk_cmd_buffer_flush_state(struct v3dvk_cmd_buffer *cmd_buffer)
+{
+   struct v3dvk_pipeline *pipeline = cmd_buffer->state.gfx.base.pipeline;
+
+   if (cmd_buffer->state.gfx.dirty & V3DVK_CMD_DIRTY_XFB_ENABLE) {
+      /* We don't need any per-buffer dirty tracking because you're not
+       * allowed to bind different XFB buffers while XFB is enabled.
+       */
+#if 0
+     cl_emit(&job->bcl, TRANSFORM_FEEDBACK_SPECS, tfe) {
+       tfe.number_of_16_bit_output_data_specs_following =
+                                        v3d->prog.bind_vs->num_tf_specs;
+       tfe.enable = tf_enabled;
+   };
+
+      for (unsigned idx = 0; idx < MAX_XFB_BUFFERS; idx++) {
+         struct v3dvk_xfb_binding *xfb = &cmd_buffer->state.xfb_bindings[idx];
+
+
+         for (int i = 0; i < v3d->prog.bind_vs->num_tf_specs; i++) {
+             cl_emit_prepacked(&job->bcl, &tf_specs[i]);
+         }
+
+         anv_batch_emit(&cmd_buffer->batch, GENX(3DSTATE_SO_BUFFER), sob) {
+            sob.SOBufferIndex = idx;
+
+            if (cmd_buffer->state.xfb_enabled && xfb->buffer && xfb->size != 0) {
+               sob.SOBufferEnable = true;
+               sob.MOCS = cmd_buffer->device->default_mocs,
+               sob.StreamOffsetWriteEnable = false;
+               sob.SurfaceBaseAddress = anv_address_add(xfb->buffer->address,
+                                                        xfb->offset);
+               /* Size is in DWords - 1 */
+               sob.SurfaceSize = xfb->size / 4 - 1;
+            }
+         }
+      }
+#endif
+   }
+
+}
+
+void v3dvk_CmdBeginTransformFeedbackEXT(
+    VkCommandBuffer                             commandBuffer,
+    uint32_t                                    firstCounterBuffer,
+    uint32_t                                    counterBufferCount,
+    const VkBuffer*                             pCounterBuffers,
+    const VkDeviceSize*                         pCounterBufferOffsets)
+{
+   V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd_buffer, commandBuffer);
+
+   assert(firstCounterBuffer < MAX_XFB_BUFFERS);
+   assert(counterBufferCount <= MAX_XFB_BUFFERS);
+   assert(firstCounterBuffer + counterBufferCount <= MAX_XFB_BUFFERS);
+
+#if 0
+   /* From the SKL PRM Vol. 2c, SO_WRITE_OFFSET:
+    *
+    *    "Ssoftware must ensure that no HW stream output operations can be in
+    *    process or otherwise pending at the point that the MI_LOAD/STORE
+    *    commands are processed. This will likely require a pipeline flush."
+    */
+   cmd_buffer->state.pending_pipe_bits |= ANV_PIPE_CS_STALL_BIT;
+   genX(cmd_buffer_apply_pipe_flushes)(cmd_buffer);
+#endif
+
+   for (uint32_t idx = 0; idx < MAX_XFB_BUFFERS; idx++) {
+      /* If we have a counter buffer, this is a resume so we need to load the
+       * value into the streamout offset register.  Otherwise, this is a begin
+       * and we need to reset it to zero.
+       */
+      if (pCounterBuffers &&
+          idx >= firstCounterBuffer &&
+          idx - firstCounterBuffer < counterBufferCount &&
+          pCounterBuffers[idx - firstCounterBuffer] != VK_NULL_HANDLE) {
+         uint32_t cb_idx = idx - firstCounterBuffer;
+         V3DVK_FROM_HANDLE(v3dvk_buffer, counter_buffer, pCounterBuffers[cb_idx]);
+         uint64_t offset = pCounterBufferOffsets ?
+                           pCounterBufferOffsets[cb_idx] : 0;
+
+         v3dvk_batch_emit(&cmd_buffer->batch, GENX(TRANSFORM_FEEDBACK_BUFFER), output) {
+            output.buffer_address = cl_address(counter_buffer->address->bo,
+                                               counter_buffer->address->offset +
+                                                  offset);
+            output.buffer_size_in_32_bit_words =
+                                        (counter_buffer->size - offset) >> 2;
+            output.buffer_number = cb_idx;
+         }
+      } else {
+#if 0
+         v3dvk_batch_emit(&cmd_buffer->batch, GENX(MI_LOAD_REGISTER_IMM), lri) {
+            lri.RegisterOffset   = GENX(SO_WRITE_OFFSET0_num) + idx * 4;
+            lri.DataDWord        = 0;
+         }
+#endif
+         fprintf(stderr, "Unimplemented");
+      }
+   }
+
+   cmd_buffer->state.xfb_enabled = true;
+   cmd_buffer->state.gfx.dirty |= V3DVK_CMD_DIRTY_XFB_ENABLE;
+}
+
+void v3dvk_CmdEndTransformFeedbackEXT(
+    VkCommandBuffer                             commandBuffer,
+    uint32_t                                    firstCounterBuffer,
+    uint32_t                                    counterBufferCount,
+    const VkBuffer*                             pCounterBuffers,
+    const VkDeviceSize*                         pCounterBufferOffsets)
+{
+   V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd_buffer, commandBuffer);
+
+   assert(firstCounterBuffer < MAX_XFB_BUFFERS);
+   assert(counterBufferCount <= MAX_XFB_BUFFERS);
+   assert(firstCounterBuffer + counterBufferCount <= MAX_XFB_BUFFERS);
+
+#if 0
+   /* From the SKL PRM Vol. 2c, SO_WRITE_OFFSET:
+    *
+    *    "Ssoftware must ensure that no HW stream output operations can be in
+    *    process or otherwise pending at the point that the MI_LOAD/STORE
+    *    commands are processed. This will likely require a pipeline flush."
+    */
+   cmd_buffer->state.pending_pipe_bits |= ANV_PIPE_CS_STALL_BIT;
+   genX(cmd_buffer_apply_pipe_flushes)(cmd_buffer);
+
+   for (uint32_t cb_idx = 0; cb_idx < counterBufferCount; cb_idx++) {
+      unsigned idx = firstCounterBuffer + cb_idx;
+
+      /* If we have a counter buffer, this is a resume so we need to load the
+       * value into the streamout offset register.  Otherwise, this is a begin
+       * and we need to reset it to zero.
+       */
+      if (pCounterBuffers &&
+          cb_idx < counterBufferCount &&
+          pCounterBuffers[cb_idx] != VK_NULL_HANDLE) {
+         V3DVK_FROM_HANDLE(v3dvk_buffer, counter_buffer, pCounterBuffers[cb_idx]);
+         uint64_t offset = pCounterBufferOffsets ?
+                           pCounterBufferOffsets[cb_idx] : 0;
+
+         v3dvk_batch_emit(&cmd_buffer->batch, GENX(MI_STORE_REGISTER_MEM), srm) {
+            srm.MemoryAddress    = anv_address_add(counter_buffer->address,
+                                                   offset);
+            srm.RegisterAddress  = GENX(SO_WRITE_OFFSET0_num) + idx * 4;
+         }
+      }
+   }
+
+   //V3D42_TRANSFORM_FEEDBACK_SPECS
+   cl_emit(&job->bcl, TRANSFORM_FEEDBACK_SPECS, tfe) {
+      tfe.enable = false;
+   };
+
+   cmd_buffer->state.xfb_enabled = false;
+   cmd_buffer->state.gfx.dirty |= V3DVK_CMD_DIRTY_XFB_ENABLE;
+#endif
 }
