@@ -63,6 +63,7 @@ MAX_API_VERSION = None # Computed later
 # the those extension strings, then tests dEQP-VK.api.info.instance.extensions
 # and dEQP-VK.api.info.device fail due to the duplicated strings.
 EXTENSIONS = [
+    Extension('VK_EXT_transform_feedback',                1, True),
 ]
 
 # Sort the extension list the way we expect: KHR, then EXT, then vendors
