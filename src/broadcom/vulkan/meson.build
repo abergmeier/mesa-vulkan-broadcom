@@ -148,7 +148,7 @@ libvulkan_broadcom = shared_library(
   'vulkan_broadcom',
   [v3dvk_extensions_h],
   include_directories : [
-    inc_common, inc_broadcom, inc_common, inc_src,
+    inc_common, inc_broadcom, inc_compiler, inc_include, inc_src,
   ],
   link_whole : [libv3dvk_common, libv3dvk_gen_lib],
   link_with : [
@@ -156,7 +156,7 @@ libvulkan_broadcom = shared_library(
     libvulkan_wsi, libmesa_util,
   ],
   dependencies : [
-    dep_thread, dep_dl, dep_m, v3dvk_deps, idep_vulkan_util,
+    dep_thread, dep_dl, dep_m, v3dvk_deps, idep_nir, idep_vulkan_util,
   ],
   c_args : v3dvk_flags,
   link_args : ['-Wl,--build-id=sha1', ld_args_bsymbolic, ld_args_gc_sections],

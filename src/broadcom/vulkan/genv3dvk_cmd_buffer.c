@@ -367,7 +367,6 @@ void v3dvk_CmdBeginTransformFeedbackEXT(
     */
    cmd_buffer->state.pending_pipe_bits |= ANV_PIPE_CS_STALL_BIT;
    genX(cmd_buffer_apply_pipe_flushes)(cmd_buffer);
-#endif
 
    for (uint32_t idx = 0; idx < MAX_XFB_BUFFERS; idx++) {
       /* If we have a counter buffer, this is a resume so we need to load the
@@ -392,15 +391,14 @@ void v3dvk_CmdBeginTransformFeedbackEXT(
             output.buffer_number = cb_idx;
          }
       } else {
-#if 0
          v3dvk_batch_emit(&cmd_buffer->batch, GENX(MI_LOAD_REGISTER_IMM), lri) {
             lri.RegisterOffset   = GENX(SO_WRITE_OFFSET0_num) + idx * 4;
             lri.DataDWord        = 0;
          }
-#endif
          fprintf(stderr, "Unimplemented");
       }
    }
+#endif
 
    cmd_buffer->state.xfb_enabled = true;
    cmd_buffer->state.gfx.dirty |= V3DVK_CMD_DIRTY_XFB_ENABLE;
