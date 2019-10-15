@@ -69,6 +69,7 @@ endif
 if with_gallium_radeonsi or with_amd_vk
   subdir('amd')
 endif
+v3dvkc = false
 if with_gallium_vc4 or with_gallium_v3d
   subdir('broadcom')
 endif
@@ -108,6 +109,9 @@ if with_gallium
     subdir('mesa/state_tracker/tests')
   endif
 endif
+
+v3dvkc = true
+subdir('broadcom/vulkan')
 
 # This must be after at least mesa, glx, and gallium, since libgl will be
 # defined in one of those subdirs depending on the glx provider.

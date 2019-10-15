@@ -93,6 +93,12 @@ struct v3dvk_device_extension_table {
    };
 };
 
+struct v3dvk_physical_device;
+
+void
+v3dvk_physical_device_get_supported_extensions(const struct v3dvk_physical_device *device,
+                                             struct v3dvk_device_extension_table *extensions);
+
 #endif /* V3DVK_EXTENSIONS_H */
 """)
 
@@ -133,6 +139,24 @@ v3dvk_physical_device_api_version(struct v3dvk_physical_device *device)
 
 %endfor
     return version;
+}
+
+
+const VkExtensionProperties v3dvk_device_extensions[V3DVK_DEVICE_EXTENSION_COUNT] = {
+%for ext in device_extensions:
+   {"${ext.name}", ${ext.ext_version}},
+%endfor
+};
+
+void
+v3dvk_physical_device_get_supported_extensions(const struct v3dvk_physical_device *device,
+                                             struct v3dvk_device_extension_table *extensions)
+{
+   *extensions = (struct v3dvk_device_extension_table) {
+%for ext in device_extensions:
+      .${ext.name[3:]} = ${ext.enable},
+%endfor
+   };
 }
 """)
 
