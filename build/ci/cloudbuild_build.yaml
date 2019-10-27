@@ -9,3 +9,4 @@ artifacts:
     paths:
     - /workspace/build/src/broadcom/vulkan/libvulkan_broadcom.so
     - /workspace/build/src/broadcom/vulkan/dev_icd.armv7hl.json
+    - /workspace/build/meson-logs/meson-log.txt
