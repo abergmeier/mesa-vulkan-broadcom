@@ -27,6 +27,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/sysinfo.h>
 
 #include <drm-uapi/v3d_drm.h>
 
@@ -47,6 +48,57 @@
 #include "v3dvk_macro.h"
 #include "wsi.h"
 #include "compiler/v3d_compiler.h"
+
+static uint64_t
+v3dvk_compute_heap_size(int fd)
+{
+   /* Query the total ram from the system */
+   struct sysinfo info;
+   if (sysinfo(&info) == -1) {
+      // TOODO: Properly handle errors
+      assert(FALSE);
+   }
+
+   uint64_t total_ram = (uint64_t)info.totalram * (uint64_t)info.mem_unit;
+
+   /* We don't want to burn too much ram with the GPU.  We use at most half.
+    */
+   uint64_t available_ram = total_ram / 2;
+
+   return available_ram;
+}
+
+static VkResult
+v3dvk_physical_device_init_heaps(struct v3dvk_physical_device *device, int fd)
+{
+   uint64_t heap_size = v3dvk_compute_heap_size(fd);
+
+   device->memory.heap_count = 1;
+   device->memory.heaps[0] = (struct v3dvk_memory_heap) {
+      .size = heap_size,
+      .flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
+   };
+
+   // Keep loop to be able to better diff to intel
+   uint32_t type_count = 0;
+   for (uint32_t heap = 0; heap < device->memory.heap_count; heap++) {
+         device->memory.types[type_count++] = (struct v3dvk_memory_type) {
+            .propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            .heapIndex = heap,
+         };
+         device->memory.types[type_count++] = (struct v3dvk_memory_type) {
+            .propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                             VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+            .heapIndex = heap,
+         };
+   }
+   device->memory.type_count = type_count;
+
+   return VK_SUCCESS;
+}
 
 static VkResult
 v3dvk_physical_device_init_uuids(struct v3dvk_physical_device *device)
@@ -174,11 +226,9 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
       goto fail;
    }
 
-#if 0
    result = v3dvk_physical_device_init_heaps(device, fd);
    if (result != VK_SUCCESS)
       goto fail;
-#endif
 
    device->compiler = v3d_compiler_init(&device->info);
    if (device->compiler == NULL) {
