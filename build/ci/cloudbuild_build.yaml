@@ -1,0 +1,9 @@
+steps:
+- name: eu.gcr.io/fritzbox-257210/buildenv
+  args: ["ninja", "-C", "/workspace/build", "-k", "100"]
+artifacts:
+  objects:
+    location: gs://v3dvk-build-results
+    paths:
+    - /workspace/build/src/broadcom/vulkan/libvulkan_broadcom.so
+    - /workspace/build/src/broadcom/vulkan/dev_icd.armv7hl.json
