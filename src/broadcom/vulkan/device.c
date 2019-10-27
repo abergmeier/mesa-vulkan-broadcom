@@ -426,3 +426,63 @@ VkResult v3dvk_CreateDevice(
 
    return result;
 }
+
+void v3dvk_DestroyDevice(
+    VkDevice                                    _device,
+    const VkAllocationCallbacks*                pAllocator)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   struct v3dvk_physical_device *physical_device;
+
+   if (!device)
+      return;
+
+   physical_device = &device->instance->physicalDevice;
+#if 0
+   anv_device_finish_blorp(device);
+
+   anv_pipeline_cache_finish(&device->default_pipeline_cache);
+#endif
+   v3dvk_queue_finish(&device->queue);
+
+#ifdef HAVE_VALGRIND
+   /* We only need to free these to prevent valgrind errors.  The backing
+    * BO will go away in a couple of lines so we don't actually leak.
+    */
+   anv_state_pool_free(&device->dynamic_state_pool, device->border_colors);
+   anv_state_pool_free(&device->dynamic_state_pool, device->slice_hash);
+#endif
+#if 0
+   anv_scratch_pool_finish(device, &device->scratch_pool);
+
+   anv_gem_munmap(device->workaround_bo.map, device->workaround_bo.size);
+   anv_vma_free(device, &device->workaround_bo);
+   anv_gem_close(device, device->workaround_bo.gem_handle);
+
+   anv_vma_free(device, &device->trivial_batch_bo);
+   anv_gem_close(device, device->trivial_batch_bo.gem_handle);
+   if (device->info.gen >= 10)
+      anv_gem_close(device, device->hiz_clear_bo.gem_handle);
+
+   if (physical_device->use_softpin)
+      anv_state_pool_finish(&device->binding_table_pool);
+   anv_state_pool_finish(&device->surface_state_pool);
+   anv_state_pool_finish(&device->instruction_state_pool);
+   anv_state_pool_finish(&device->dynamic_state_pool);
+
+   anv_bo_cache_finish(&device->bo_cache);
+
+   anv_bo_pool_finish(&device->batch_bo_pool);
+#endif
+   pthread_cond_destroy(&device->queue_submit);
+   pthread_mutex_destroy(&device->mutex);
+#if 0
+   anv_gem_destroy_context(device, device->context_id);
+
+   if (INTEL_DEBUG & DEBUG_BATCH)
+      gen_batch_decode_ctx_finish(&device->decoder_ctx);
+#endif
+   close(device->fd);
+
+   vk_free(&device->alloc, device);
+}
