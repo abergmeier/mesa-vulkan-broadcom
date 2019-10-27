@@ -32,7 +32,9 @@ struct v3dvk_memory_type {
    uint32_t                heapIndex;
 
    /* Driver-internal book-keeping */
+#if 0
    VkBufferUsageFlags      valid_buffer_usage;
+#endif
 };
 
 struct v3dvk_memory_heap {
@@ -41,9 +43,11 @@ struct v3dvk_memory_heap {
    VkMemoryHeapFlags flags;
 
    /* Driver-internal book-keeping */
+#if 0
    uint64_t          vma_start;
    uint64_t          vma_size;
    bool              supports_48bit_addresses;
+#endif
    VkDeviceSize      used;
 };
 
