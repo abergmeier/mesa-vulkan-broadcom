@@ -1,0 +1,10 @@
+steps:
+- name: gcr.io/kaniko-project/executor
+  args:
+  - --destination=eu.gcr.io/$PROJECT_ID/buildenv
+  - --cache
+  - --cache-ttl=2400h
+  - --dockerfile mesa/build/ci/buildenv/Dockerfile
+  - --reproducible
+- name: eu.gcr.io/$PROJECT_ID/buildenv
+images: ["eu.gcr.io/$PROJECT_ID/buildenv"]
