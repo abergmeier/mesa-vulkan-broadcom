@@ -6,4 +6,4 @@ RUN apt-get update && \
     apt-get autoclean && \
     apt-get clean
 
-RUN pip3 install meson
+RUN pip3 install mako meson
