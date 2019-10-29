@@ -1,19 +1,42 @@
 steps:
-- name: gcr.io/$PROJECT_ID/buildenv:32
-  args: ["bash", "/workspace/scripts/bootstrap.sh"]
-- name: gcr.io/$PROJECT_ID/buildenv:32
-  args: ["ninja", "-C", "/workspace/build", "-k", "100"]
-- name: gcr.io/$PROJECT_ID/buildenv:64
-  args: ["bash", "/workspace/scripts/bootstrap.sh"]
+- name: alpine
+  args: ["cp", "-r", "/workspace", "/workspace32"]
   waitFor: ["-"]
+  volume:
+    name: w32
+    path: /workspace32
+- name: gcr.io/$PROJECT_ID/buildenv:32
+  args: ["bash", "/workspace32/scripts/bootstrap.sh"]
+  volume:
+    name: w32
+    path: /workspace32
+- name: gcr.io/$PROJECT_ID/buildenv:32
+  args: ["ninja", "-C", "/workspace32/build", "-k", "100"]
+  volume:
+    name: w32
+    path: /workspace32
+- name: alpine
+  args: ["cp", "-r", "/workspace64", "/workspace32"]
+  waitFor: ["-"]
+  volume:
+    name: w64
+    path: /workspace64
 - name: gcr.io/$PROJECT_ID/buildenv:64
-  args: ["ninja", "-C", "/workspace/build", "-k", "100"]
+  args: ["bash", "/workspace64/scripts/bootstrap.sh"]
+  volume:
+    name: w64
+    path: /workspace64
+- name: gcr.io/$PROJECT_ID/buildenv:64
+  args: ["ninja", "-C", "/workspace64/build", "-k", "100"]
+  volume:
+    name: w64
+    path: /workspace64
 artifacts:
   objects:
     location: gs://v3dvk-build-results
     paths:
-    - /workspace/build/src/broadcom/vulkan/libvulkan_broadcom.so
-    - /workspace/build/src/broadcom/vulkan/dev_icd.armv7hl.json
-    - /workspace/build/meson-logs/meson-log.txt
+    - /workspace32/build/src/broadcom/vulkan/libvulkan_broadcom.so
+    - /workspace32/build/src/broadcom/vulkan/dev_icd.armv7hl.json
+    - /workspace32/build/meson-logs/meson-log.txt
 options:
   machineType: N1_HIGHCPU_32
