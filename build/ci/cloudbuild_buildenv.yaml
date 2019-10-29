@@ -21,4 +21,4 @@ steps:
 - name: gcr.io/$PROJECT_ID/buildenv:64
 images: ["gcr.io/$PROJECT_ID/buildenv:32", "gcr.io/$PROJECT_ID/buildenv:64"]
 options:
-  machineType: N1_HIGHMEM_2
+  machineType: N1_HIGHCPU_8
