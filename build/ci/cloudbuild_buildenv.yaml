@@ -1,10 +1,22 @@
 steps:
 - name: gcr.io/kaniko-project/executor
   args:
-  - --destination=eu.gcr.io/$PROJECT_ID/buildenv
+  - --destination=eu.gcr.io/$PROJECT_ID/buildenv:32
   - --cache
   - --cache-ttl=2400h
-  - --dockerfile=build/package/buildenv/Dockerfile
+  - --context=build/package/buildenv
+  - --dockerfile=build/package/buildenv/Dockerfile.32
   - --reproducible
-- name: eu.gcr.io/$PROJECT_ID/buildenv
-images: ["eu.gcr.io/$PROJECT_ID/buildenv"]
+  waitFor: ["-"]
+- name: eu.gcr.io/$PROJECT_ID/buildenv:32
+- name: gcr.io/kaniko-project/executor
+  args:
+  - --destination=eu.gcr.io/$PROJECT_ID/buildenv:64
+  - --cache
+  - --cache-ttl=2400h
+  - --context=build/package/buildenv
+  - --dockerfile=build/package/buildenv/Dockerfile.64
+  - --reproducible
+  waitFor: ["-"]
+- name: eu.gcr.io/$PROJECT_ID/buildenv:64
+images: ["eu.gcr.io/$PROJECT_ID/buildenv:32", "eu.gcr.io/$PROJECT_ID/buildenv:64"]
