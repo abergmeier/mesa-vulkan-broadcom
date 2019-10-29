@@ -8,7 +8,7 @@ steps:
   - --dockerfile=build/package/buildenv/Dockerfile.32
   - --reproducible
   waitFor: ["-"]
-- name: eu.gcr.io/$PROJECT_ID/buildenv:32
+- name: gcr.io/$PROJECT_ID/buildenv:32
 - name: gcr.io/kaniko-project/executor
   args:
   - --cache
