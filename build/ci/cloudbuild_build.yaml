@@ -2,34 +2,34 @@ steps:
 - name: alpine
   args: ["cp", "-r", "/workspace", "/workspace32"]
   waitFor: ["-"]
-  volume:
-    name: w32
+  volumes:
+  - name: w32
     path: /workspace32
 - name: gcr.io/$PROJECT_ID/buildenv:32
   args: ["bash", "/workspace32/scripts/bootstrap.sh"]
-  volume:
-    name: w32
+  volumes:
+  - name: w32
     path: /workspace32
 - name: gcr.io/$PROJECT_ID/buildenv:32
   args: ["ninja", "-C", "/workspace32/build", "-k", "100"]
-  volume:
-    name: w32
+  volumes:
+  - name: w32
     path: /workspace32
 - name: alpine
   args: ["cp", "-r", "/workspace64", "/workspace32"]
   waitFor: ["-"]
-  volume:
-    name: w64
+  volumes:
+  - name: w64
     path: /workspace64
 - name: gcr.io/$PROJECT_ID/buildenv:64
   args: ["bash", "/workspace64/scripts/bootstrap.sh"]
-  volume:
-    name: w64
+  volumes:
+  - name: w64
     path: /workspace64
 - name: gcr.io/$PROJECT_ID/buildenv:64
   args: ["ninja", "-C", "/workspace64/build", "-k", "100"]
-  volume:
-    name: w64
+  volumes:
+  - name: w64
     path: /workspace64
 artifacts:
   objects:
