@@ -1,12 +1,12 @@
 steps:
-- name: eu.gcr.io/$PROJECT_ID/buildenv:32
+- name: gcr.io/$PROJECT_ID/buildenv:32
   args: ["bash", "/workspace/scripts/bootstrap.sh"]
-- name: eu.gcr.io/$PROJECT_ID/buildenv:32
+- name: gcr.io/$PROJECT_ID/buildenv:32
   args: ["ninja", "-C", "/workspace/build", "-k", "100"]
-- name: eu.gcr.io/$PROJECT_ID/buildenv:64
+- name: gcr.io/$PROJECT_ID/buildenv:64
   args: ["bash", "/workspace/scripts/bootstrap.sh"]
   waitFor: ["-"]
-- name: eu.gcr.io/$PROJECT_ID/buildenv:64
+- name: gcr.io/$PROJECT_ID/buildenv:64
   args: ["ninja", "-C", "/workspace/build", "-k", "100"]
 artifacts:
   objects:
