@@ -16,7 +16,7 @@ steps:
   - name: w32
     path: /workspace32
 - name: alpine
-  args: ["cp", "-r", "/workspace64", "/workspace32"]
+  args: ["cp", "-r", "/workspace", "/workspace64"]
   waitFor: ["-"]
   volumes:
   - name: w64
