@@ -4,10 +4,13 @@ set -euf -o pipefail
 
 bits=$1
 
+mkdir -p build
+CROSS_PATH="$(pwd)/build/cross"
+
 if [ "$bits" = "32" ]
 then
 
-	cat <<EOF > /tmp/cross
+	cat <<EOF > "${CROSS_PATH}"
 [binaries]
 c = '/usr/bin/arm-linux-gnueabihf-gcc'
 cpp = '/usr/bin/arm-linux-gnueabihf-g++'
@@ -23,7 +26,7 @@ endian = 'little'
 EOF
 
 else
-	cat <<EOF > /tmp/cross
+	cat <<EOF > "${CROSS_PATH}"
 [binaries]
 c = '/usr/bin/aarch64-linux-gnu-gcc'
 cpp = '/usr/bin/aarch64-linux-gnu-g++'
@@ -42,7 +45,7 @@ fi
 meson build \
 	-Ddri-drivers= \
 	-Dplatforms=x11,drm,surfaceless \
-	--cross-file=/tmp/cross \
+	--cross-file="${CROSS_PATH}" \
 	-DI-love-half-baked-turnips=true \
 	-Dvulkan-drivers=broadcom,freedreno \
 	-Dgallium-drivers=v3d \
