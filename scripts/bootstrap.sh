@@ -2,7 +2,12 @@
 
 set -euf -o pipefail
 
-cat <<EOF > /tmp/cross
+bits=$1
+
+if [ "$bits" = "32" ]
+then
+
+	cat <<EOF > /tmp/cross
 [binaries]
 c = '/usr/bin/arm-linux-gnueabihf-gcc'
 cpp = '/usr/bin/arm-linux-gnueabihf-g++'
@@ -16,6 +21,23 @@ cpu_family = 'arm'
 cpu = 'armv7hl'
 endian = 'little'
 EOF
+
+else
+	cat <<EOF > /tmp/cross
+[binaries]
+c = '/usr/bin/aarch64-linux-gnu-gcc'
+cpp = '/usr/bin/aarch64-linux-gnu-g++'
+ar = '/usr/bin/aarch64-linux-gnu-ar'
+strip = '/usr/bin/aarch64-linux-gnu-strip'
+pkgconfig = '/usr/bin/aarch64-linux-gnu-pkg-config'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'arm'
+cpu = 'aarch64'
+endian = 'little'
+EOF
+fi
 
 meson build \
 	-Ddri-drivers= \
