@@ -7,7 +7,8 @@ steps:
   - name: w32
     path: /workspace32
 - name: gcr.io/$PROJECT_ID/buildenv:32
-  args: ["bash", "/workspace32/scripts/bootstrap.sh", "32"]
+  args: ["bash", "scripts/bootstrap.sh", "32"]
+  dir: /workspace32
   volumes:
   - name: w32
     path: /workspace32
@@ -24,7 +25,8 @@ steps:
   - name: w64
     path: /workspace64
 - name: gcr.io/$PROJECT_ID/buildenv:64
-  args: ["bash", "/workspace64/scripts/bootstrap.sh", "64"]
+  args: ["bash", "scripts/bootstrap.sh", "64"]
+  dir: /workspace64
   volumes:
   - name: w64
     path: /workspace64
