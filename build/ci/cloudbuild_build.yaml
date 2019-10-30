@@ -1,6 +1,7 @@
 steps:
 - name: alpine
-  args: ["cp", "-r", "/workspace", "/workspace32"]
+  entrypoint: /bin/sh
+  args: ["-c", "cp -r /workspace/* /workspace32"]
   waitFor: ["-"]
   volumes:
   - name: w32
@@ -16,7 +17,8 @@ steps:
   - name: w32
     path: /workspace32
 - name: alpine
-  args: ["cp", "-r", "/workspace", "/workspace64"]
+  entrypoint: /bin/sh
+  args: ["-c", "cp -r /workspace/* /workspace64"]
   waitFor: ["-"]
   volumes:
   - name: w64
