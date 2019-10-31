@@ -9,7 +9,7 @@ RUN apt-get update && \
                     libdrm-dev:armhf libx11-dev:armhf libxext-dev:armhf libxcb-glx0-dev:armhf libx11-xcb-dev:armhf \
                     libxcb-dri2-0-dev:armhf libxcb-dri3-dev:armhf libxcb-present-dev:armhf \
                     libxshmfence-dev:armhf libxxf86vm-dev:armhf libxrandr-dev:armhf \
-                    libxdamage-dev:armhf && \
+                    libxdamage-dev:armhf zlib1g-dev:armhf && \
     apt-get autoclean && \
     apt-get clean
 
