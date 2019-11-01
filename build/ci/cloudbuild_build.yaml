@@ -47,4 +47,4 @@ steps:
   - name: w32
     path: /workspace32
 options:
-  machineType: N1_HIGHCPU_32
+  machineType: N1_HIGHCPU_8
