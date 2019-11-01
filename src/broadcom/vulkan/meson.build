@@ -106,7 +106,7 @@ libv3dvk_files = files(
 
 libv3dvk_gen_lib = static_library(
   'v3dvk_gen',
-  ['genv3dvk_cmd_buffer.c'],
+  ['genv3dvk_cmd_buffer.c', v3dvk_extensions_h],
   include_directories : [
     inc_common, inc_compiler, inc_include, inc_broadcom, inc_vulkan_wsi,
   ],
