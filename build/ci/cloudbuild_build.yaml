@@ -35,7 +35,7 @@ steps:
   volumes:
   - name: w64
     path: /workspace64
-- id: Store build results
+- id: Store build results (32bit)
   name: gcr.io/cloud-builders/gsutil
   args:
   - cp
@@ -46,5 +46,16 @@ steps:
   volumes:
   - name: w32
     path: /workspace32
+- id: Store build results (64bit)
+  name: gcr.io/cloud-builders/gsutil
+  args:
+  - cp
+  - /workspace64/build/src/broadcom/vulkan/libvulkan_broadcom.so
+  - /workspace64/build/src/broadcom/vulkan/dev_icd.aarch64.json
+  - /workspace64/build/meson-logs/meson-log.txt
+  - gs://v3dvk-build-results/64
+  volumes:
+  - name: w64
+    path: /workspace64
 options:
   machineType: N1_HIGHCPU_8
