@@ -1,22 +1,80 @@
 steps:
-- name: alpine
+- id: Init storage repo
+  name: alpine/git
+  args: ["clone", "https://github.com/abergmeier/mesa-vulkan-broadcom", "--depth", "1", "/repo/mesa-vulkan-broadcom"]
+  volumes:
+  - name: repo
+    path: /repo
+  waitFor: ["-"]
+- id: Clone Workspace (32bit)
+  name: alpine
   entrypoint: /bin/sh
   args: ["-c", "cp -r /workspace/* /workspace32"]
   waitFor: ["-"]
   volumes:
   - name: w32
     path: /workspace32
-- name: gcr.io/$PROJECT_ID/buildenv:32
-  args: ["bash", "scripts/bootstrap.sh", "32"]
-  dir: /workspace32
+- id: Restore cache (32bit)
+  name: gcr.io/cloud-builders/gsutil
+  entrypoint: /bin/bash
+  args:
+  - "-c"
+  - |
+    mkdir -p /workspace32/build
+    gsutil cp -r gs://v3dvk-cache/build32 /workspace32/build
   volumes:
   - name: w32
     path: /workspace32
-- name: gcr.io/$PROJECT_ID/buildenv:32
+- id: Bootstrap (32bit)
+  name: gcr.io/$PROJECT_ID/buildenv:32
+  entrypoint: "/bin/bash"
+  args:
+  - "-c"
+  - |
+    cd /workspace32
+    if [ ! -f /workspace32/build/build.ninja ]
+    then
+      bash scripts/bootstrap.sh 32
+    fi
+  volumes:
+  - name: w32
+    path: /workspace32
+- id: Build (32bit)
+  name: gcr.io/$PROJECT_ID/buildenv:32
   args: ["ninja", "-C", "/workspace32/build", "-k", "100"]
   volumes:
   - name: w32
     path: /workspace32
+- id: Store cache (32bit)
+  name: gcr.io/cloud-builders/gsutil
+  args: ["cp", "-r", "/workspace32/build/*", "gs://v3dvk-cache/build32"]
+  volumes:
+  - name: w32
+    path: /workspace32
+- id: Download credentials
+  name: gcr.io/cloud-builders/gsutil
+  args: ["cp", "-r", "gs://rpi-secrets/github/*", "/github"]
+  volumes:
+  - name: github
+    path: /github
+- name: abergmeier/hub:2.12.8
+  entrypoint: /bin/ash
+  args:
+  - "-c"
+  - |
+    cd /repo/mesa-vulkan-broadcom
+    GITHUB_USER=abergmeier
+    GITHUB_TOKEN=$(cat /github/token)
+    GITHUB_REPOSITORY=abergmeier/mesa-vulkan-broadcom
+    hub release create -m "Build (32bit) by CI via $BUILD_ID" -t $COMMIT_SHA -a /workspace32/build/src/broadcom/vulkan/libvulkan_broadcom.so -a /workspace32/build/src/broadcom/vulkan/dev_icd.aarch64.json snapshot32_$SHORT_SHA
+  volumes:
+  - name: github
+    path: /github
+  - name: repo
+    path: /repo
+  - name: w32
+    path: /workspace32
+  waitFor: ["Init storage repo", "Build (32bit)", "Download credentials"]
 - name: alpine
   entrypoint: /bin/sh
   args: ["-c", "cp -r /workspace/* /workspace64"]
@@ -24,13 +82,19 @@ steps:
   volumes:
   - name: w64
     path: /workspace64
-- name: gcr.io/$PROJECT_ID/buildenv:64
-  args: ["bash", "scripts/bootstrap.sh", "64"]
-  dir: /workspace64
+- id: Bootstrap (64bit)
+  name: gcr.io/$PROJECT_ID/buildenv:64
+  entrypoint: /bin/bash
+  args:
+  - "-c"
+  - |
+    cd /workspace64
+    bash scripts/bootstrap.sh 64
   volumes:
   - name: w64
     path: /workspace64
-- name: gcr.io/$PROJECT_ID/buildenv:64
+- id: Build (64bit)
+  name: gcr.io/$PROJECT_ID/buildenv:64
   args: ["ninja", "-C", "/workspace64/build", "-k", "100"]
   volumes:
   - name: w64
