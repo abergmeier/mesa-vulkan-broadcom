@@ -123,3 +123,4 @@ steps:
     path: /workspace64
 options:
   machineType: N1_HIGHCPU_8
+timeout: 1200s
