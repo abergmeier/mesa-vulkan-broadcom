@@ -21,7 +21,7 @@ steps:
   - "-c"
   - |
     mkdir -p /workspace32/build
-    gsutil -m rsync -d -r gs://v3dvk-cache/build32 /workspace32/build
+    gsutil -m -q rsync -d -r gs://v3dvk-cache/build32 /workspace32/build
   volumes:
   - name: w32
     path: /workspace32
@@ -47,7 +47,7 @@ steps:
     path: /workspace32
 - id: Store cache (32bit)
   name: gcr.io/cloud-builders/gsutil
-  args: ["-m", "rsync", "-d", "-r", "/workspace32/build/*", "gs://v3dvk-cache/build32"]
+  args: ["-m", "-q", "rsync", "-d", "-r", "/workspace32/build/*", "gs://v3dvk-cache/build32"]
   volumes:
   - name: w32
     path: /workspace32
