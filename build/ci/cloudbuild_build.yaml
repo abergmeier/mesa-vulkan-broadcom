@@ -21,7 +21,7 @@ steps:
   - "-c"
   - |
     mkdir -p /workspace32/build
-    gsutil -m -q rsync -d -r gs://v3dvk-cache/build32 /workspace32/build
+    gsutil -m -q rsync -d -r gs://v3dvk-cache/build32/* /workspace32/build/
   volumes:
   - name: w32
     path: /workspace32
