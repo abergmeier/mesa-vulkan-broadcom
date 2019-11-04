@@ -16,12 +16,12 @@ steps:
     path: /workspace32
 - id: Restore cache (32bit)
   name: gcr.io/cloud-builders/gsutil
-  entrypoint: /bin/bash
+  entrypoint: /bin/sh
   args:
   - "-c"
   - |
-    mkdir -p /workspace32/build
-    gsutil -m -q rsync -d -r gs://v3dvk-cache/build32/* /workspace32/build/
+    mkdir -p /workspace32/build/src
+    gsutil -m -q cp -r gs://v3dvk-cache/build32/src /workspace32/build/src
   volumes:
   - name: w32
     path: /workspace32
@@ -32,10 +32,7 @@ steps:
   - "-c"
   - |
     cd /workspace32
-    if [ ! -f /workspace32/build/build.ninja ]
-    then
-      bash scripts/bootstrap.sh 32
-    fi
+    bash scripts/bootstrap.sh 32
   volumes:
   - name: w32
     path: /workspace32
@@ -47,7 +44,7 @@ steps:
     path: /workspace32
 - id: Store cache (32bit)
   name: gcr.io/cloud-builders/gsutil
-  args: ["-m", "-q", "rsync", "-d", "-r", "/workspace32/build/*", "gs://v3dvk-cache/build32"]
+  args: ["-m", "-q", "rsync", "-d", "-r", "/workspace32/build/src", "gs://v3dvk-cache/build32/src"]
   volumes:
   - name: w32
     path: /workspace32
@@ -59,14 +56,13 @@ steps:
     path: /github
 - name: abergmeier/hub:2.12.8
   entrypoint: /bin/ash
+  env: ["GITHUB_USER=abergmeier", "GITHUB_REPOSITORY=abergmeier/mesa-vulkan-broadcom"]
   args:
   - "-c"
   - |
     cd /repo/mesa-vulkan-broadcom
-    GITHUB_USER=abergmeier
-    GITHUB_TOKEN=$(cat /github/token)
-    GITHUB_REPOSITORY=abergmeier/mesa-vulkan-broadcom
-    hub release create -m "Build (32bit) by CI via $BUILD_ID" -t $COMMIT_SHA -a /workspace32/build/src/broadcom/vulkan/libvulkan_broadcom.so -a /workspace32/build/src/broadcom/vulkan/dev_icd.aarch64.json snapshot32_$SHORT_SHA
+    export GITHUB_TOKEN=$(cat /github/token)
+    hub release create -m "Build (32bit) by CI via $BUILD_ID" -t $COMMIT_SHA -a /workspace32/build/src/broadcom/vulkan/libvulkan_broadcom.so -a /workspace32/build/src/broadcom/vulkan/dev_icd.armv7hl.json snapshot32_$SHORT_SHA
   volumes:
   - name: github
     path: /github
