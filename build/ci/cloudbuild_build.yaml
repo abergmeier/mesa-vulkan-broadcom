@@ -62,7 +62,7 @@ steps:
   - |
     cd /repo/mesa-vulkan-broadcom
     export GITHUB_TOKEN=$(cat /github/token)
-    hub release create -m "Build (32bit) by CI via $BUILD_ID" -t $COMMIT_SHA -a /workspace32/build/src/broadcom/vulkan/libvulkan_broadcom.so -a /workspace32/build/src/broadcom/vulkan/dev_icd.armv7hl.json snapshot32_$SHORT_SHA
+    hub release create -p -m "Build (32bit) by CI via $BUILD_ID" -t $COMMIT_SHA -a /workspace32/build/src/broadcom/vulkan/libvulkan_broadcom.so -a /workspace32/build/src/broadcom/vulkan/dev_icd.armv7hl.json snapshot32_$SHORT_SHA
   volumes:
   - name: github
     path: /github
