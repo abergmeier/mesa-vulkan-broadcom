@@ -294,7 +294,7 @@ void v3dvk_GetPhysicalDeviceFeatures(
    V3DVK_FROM_HANDLE(v3dvk_physical_device, pdevice, physicalDevice);
 
    *pFeatures = (VkPhysicalDeviceFeatures) {
-      .robustBufferAccess                       = false,
+      .robustBufferAccess                       = true,
       .fullDrawIndexUint32                      = false,
       .imageCubeArray                           = false,
       .independentBlend                         = false,
