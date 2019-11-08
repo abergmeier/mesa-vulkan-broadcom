@@ -44,6 +44,7 @@
 #include <util/ralloc.h>
 #include <util/u_string.h>
 #include <vulkan/util/vk_util.h>
+#include "v3dvk_constants.h"
 #include "v3dvk_defines.h"
 #include "v3dvk_macro.h"
 #include "wsi.h"
@@ -557,6 +558,12 @@ void v3dvk_GetPhysicalDeviceFeatures2(
    }
 }
 
+
+#define MAX_PER_STAGE_DESCRIPTOR_UNIFORM_BUFFERS   12
+
+#define MAX_PER_STAGE_DESCRIPTOR_INPUT_ATTACHMENTS 4
+#define MAX_DESCRIPTOR_SET_INPUT_ATTACHMENTS       4
+
 void v3dvk_GetPhysicalDeviceProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceProperties*                 pProperties)
@@ -564,129 +571,134 @@ void v3dvk_GetPhysicalDeviceProperties(
    V3DVK_FROM_HANDLE(v3dvk_physical_device, pdevice, physicalDevice);
    const struct v3d_device_info *devinfo = &pdevice->info;
 
-   VkPhysicalDeviceLimits limits;
-   // TODO: Insert actual values
-   for (uint8_t* bl = (uint8_t*)&limits; bl < (uint8_t*)&limits + sizeof(VkPhysicalDeviceLimits); ++bl) {
-      *bl = 0;
-   }
-#if 0
+  unsigned shaderStages = 3;
+
    VkPhysicalDeviceLimits limits = {
-      .maxImageDimension1D                      = (1 << 14),
-      .maxImageDimension2D                      = (1 << 14),
-      .maxImageDimension3D                      = (1 << 11),
-      .maxImageDimensionCube                    = (1 << 14),
-      .maxImageArrayLayers                      = (1 << 11),
-      .maxTexelBufferElements                   = 128 * 1024 * 1024,
-      .maxUniformBufferRange                    = (1ul << 27),
-      .maxStorageBufferRange                    = max_raw_buffer_sz,
+      .maxImageDimension1D                      = 4096,
+      .maxImageDimension2D                      = 4096,
+      .maxImageDimension3D                      = 256,
+      .maxImageDimensionCube                    = 4096,
+      .maxImageArrayLayers                      = 256,
+      .maxTexelBufferElements                   = 65536,
+      .maxUniformBufferRange                    = 16384,
+      .maxStorageBufferRange                    = 134217728,
       .maxPushConstantsSize                     = MAX_PUSH_CONSTANTS_SIZE,
-      .maxMemoryAllocationCount                 = UINT32_MAX,
-      .maxSamplerAllocationCount                = 64 * 1024,
-      .bufferImageGranularity                   = 64, /* A cache line */
-      .sparseAddressSpaceSize                   = 0,
+      .maxMemoryAllocationCount                 = 4096,
+      .maxSamplerAllocationCount                = 4000,
+      .bufferImageGranularity                   = 1,
+      .sparseAddressSpaceSize                   = 2UL*1024*1024*1024,
       .maxBoundDescriptorSets                   = MAX_SETS,
-      .maxPerStageDescriptorSamplers            = max_samplers,
+      .maxPerStageDescriptorSamplers            = 16,
       .maxPerStageDescriptorUniformBuffers      = MAX_PER_STAGE_DESCRIPTOR_UNIFORM_BUFFERS,
-      .maxPerStageDescriptorStorageBuffers      = max_ssbos,
-      .maxPerStageDescriptorSampledImages       = max_textures,
-      .maxPerStageDescriptorStorageImages       = max_images,
+      .maxPerStageDescriptorStorageBuffers      = 4,
+      .maxPerStageDescriptorSampledImages       = 16,
+      .maxPerStageDescriptorStorageImages       = 4,
       .maxPerStageDescriptorInputAttachments    = MAX_PER_STAGE_DESCRIPTOR_INPUT_ATTACHMENTS,
-      .maxPerStageResources                     = max_per_stage,
-      .maxDescriptorSetSamplers                 = 6 * max_samplers, /* number of stages * maxPerStageDescriptorSamplers */
-      .maxDescriptorSetUniformBuffers           = 6 * MAX_PER_STAGE_DESCRIPTOR_UNIFORM_BUFFERS,           /* number of stages * maxPerStageDescriptorUniformBuffers */
-      .maxDescriptorSetUniformBuffersDynamic    = MAX_DYNAMIC_BUFFERS / 2,
-      .maxDescriptorSetStorageBuffers           = 6 * max_ssbos,    /* number of stages * maxPerStageDescriptorStorageBuffers */
-      .maxDescriptorSetStorageBuffersDynamic    = MAX_DYNAMIC_BUFFERS / 2,
-      .maxDescriptorSetSampledImages            = 6 * max_textures, /* number of stages * maxPerStageDescriptorSampledImages */
-      .maxDescriptorSetStorageImages            = 6 * max_images,   /* number of stages * maxPerStageDescriptorStorageImages */
+      .maxPerStageResources                     = 0, // gets calculated further down
+      .maxDescriptorSetSamplers                 = shaderStages * 16,
+      .maxDescriptorSetUniformBuffers           = shaderStages * 12,
+      .maxDescriptorSetUniformBuffersDynamic    = 8,
+      .maxDescriptorSetStorageBuffers           = shaderStages * 4,
+      .maxDescriptorSetStorageBuffersDynamic    = 4,
+      .maxDescriptorSetSampledImages            = shaderStages * 16,
+      .maxDescriptorSetStorageImages            = shaderStages * 4,
       .maxDescriptorSetInputAttachments         = MAX_DESCRIPTOR_SET_INPUT_ATTACHMENTS,
       .maxVertexInputAttributes                 = MAX_VBS,
       .maxVertexInputBindings                   = MAX_VBS,
       .maxVertexInputAttributeOffset            = 2047,
       .maxVertexInputBindingStride              = 2048,
-      .maxVertexOutputComponents                = 128,
+      .maxVertexOutputComponents                = 64,
       .maxTessellationGenerationLevel           = 64,
       .maxTessellationPatchSize                 = 32,
-      .maxTessellationControlPerVertexInputComponents = 128,
-      .maxTessellationControlPerVertexOutputComponents = 128,
-      .maxTessellationControlPerPatchOutputComponents = 128,
+      .maxTessellationControlPerVertexInputComponents = 64,
+      .maxTessellationControlPerVertexOutputComponents = 64,
+      .maxTessellationControlPerPatchOutputComponents = 120,
       .maxTessellationControlTotalOutputComponents = 2048,
-      .maxTessellationEvaluationInputComponents = 128,
-      .maxTessellationEvaluationOutputComponents = 128,
+      .maxTessellationEvaluationInputComponents = 64,
+      .maxTessellationEvaluationOutputComponents = 64,
       .maxGeometryShaderInvocations             = 32,
       .maxGeometryInputComponents               = 64,
-      .maxGeometryOutputComponents              = 128,
+      .maxGeometryOutputComponents              = 64,
       .maxGeometryOutputVertices                = 256,
       .maxGeometryTotalOutputComponents         = 1024,
-      .maxFragmentInputComponents               = 116, /* 128 components - (PSIZ, CLIP_DIST0, CLIP_DIST1) */
-      .maxFragmentOutputAttachments             = 8,
+      .maxFragmentInputComponents               = 64,
+      .maxFragmentOutputAttachments             = 4,
       .maxFragmentDualSrcAttachments            = 1,
-      .maxFragmentCombinedOutputResources       = 8,
-      .maxComputeSharedMemorySize               = 64 * 1024,
+      .maxFragmentCombinedOutputResources       = 4,
+      .maxComputeSharedMemorySize               = 16384,
       .maxComputeWorkGroupCount                 = { 65535, 65535, 65535 },
-      .maxComputeWorkGroupInvocations           = 32 * devinfo->max_cs_threads,
+      .maxComputeWorkGroupInvocations           = 128,
       .maxComputeWorkGroupSize = {
-         16 * devinfo->max_cs_threads,
-         16 * devinfo->max_cs_threads,
-         16 * devinfo->max_cs_threads,
+         128,
+         128,
+         128,
       },
-      .subPixelPrecisionBits                    = 8,
-      .subTexelPrecisionBits                    = 8,
-      .mipmapPrecisionBits                      = 8,
-      .maxDrawIndexedIndexValue                 = UINT32_MAX,
-      .maxDrawIndirectCount                     = UINT32_MAX,
-      .maxSamplerLodBias                        = 16,
+      .subPixelPrecisionBits                    = 4,
+      .subTexelPrecisionBits                    = 4,
+      .mipmapPrecisionBits                      = 4,
+      .maxDrawIndexedIndexValue                 = (uint32_t)~0,
+      .maxDrawIndirectCount                     = 65535,
+      .maxSamplerLodBias                        = 2.0f,
       .maxSamplerAnisotropy                     = 16,
       .maxViewports                             = MAX_VIEWPORTS,
-      .maxViewportDimensions                    = { (1 << 14), (1 << 14) },
+      .maxViewportDimensions                    = { 4096, 4096 },
       .viewportBoundsRange                      = { INT16_MIN, INT16_MAX },
-      .viewportSubPixelBits                     = 13, /* We take a float? */
-      .minMemoryMapAlignment                    = 4096, /* A page */
-      /* The dataport requires texel alignment so we need to assume a worst
-       * case of R32G32B32A32 which is 16 bytes.
-       */
-      .minTexelBufferOffsetAlignment            = 16,
-      /* We need 16 for UBO block reads to work and 32 for push UBOs */
-      .minUniformBufferOffsetAlignment          = 32,
-      .minStorageBufferOffsetAlignment          = 4,
+      .viewportSubPixelBits                     = 0.0f,
+      .minMemoryMapAlignment                    = 4096,
+      .minTexelBufferOffsetAlignment            = 1,
+      .minUniformBufferOffsetAlignment          = 1,
+      .minStorageBufferOffsetAlignment          = 1,
       .minTexelOffset                           = -8,
       .maxTexelOffset                           = 7,
-      .minTexelGatherOffset                     = -32,
-      .maxTexelGatherOffset                     = 31,
+      .minTexelGatherOffset                     = -8,
+      .maxTexelGatherOffset                     = 7,
       .minInterpolationOffset                   = -0.5,
       .maxInterpolationOffset                   = 0.4375,
       .subPixelInterpolationOffsetBits          = 4,
-      .maxFramebufferWidth                      = (1 << 14),
-      .maxFramebufferHeight                     = (1 << 14),
-      .maxFramebufferLayers                     = (1 << 11),
-      .framebufferColorSampleCounts             = sample_counts,
-      .framebufferDepthSampleCounts             = sample_counts,
-      .framebufferStencilSampleCounts           = sample_counts,
-      .framebufferNoAttachmentsSampleCounts     = sample_counts,
+      .maxFramebufferWidth                      = 4096,
+      .maxFramebufferHeight                     = 4096,
+      .maxFramebufferLayers                     = 0,
+      .framebufferColorSampleCounts             = VK_SAMPLE_COUNT_1_BIT|VK_SAMPLE_COUNT_4_BIT,
+      .framebufferDepthSampleCounts             = VK_SAMPLE_COUNT_1_BIT|VK_SAMPLE_COUNT_4_BIT,
+      .framebufferStencilSampleCounts           = VK_SAMPLE_COUNT_1_BIT|VK_SAMPLE_COUNT_4_BIT,
+      .framebufferNoAttachmentsSampleCounts     = VK_SAMPLE_COUNT_1_BIT|VK_SAMPLE_COUNT_4_BIT,
       .maxColorAttachments                      = MAX_RTS,
-      .sampledImageColorSampleCounts            = sample_counts,
+      .sampledImageColorSampleCounts            = VK_SAMPLE_COUNT_1_BIT|VK_SAMPLE_COUNT_4_BIT,
       .sampledImageIntegerSampleCounts          = VK_SAMPLE_COUNT_1_BIT,
-      .sampledImageDepthSampleCounts            = sample_counts,
-      .sampledImageStencilSampleCounts          = sample_counts,
-      .storageImageSampleCounts                 = VK_SAMPLE_COUNT_1_BIT,
+      .sampledImageDepthSampleCounts            = VK_SAMPLE_COUNT_1_BIT|VK_SAMPLE_COUNT_4_BIT,
+      .sampledImageStencilSampleCounts          = VK_SAMPLE_COUNT_1_BIT|VK_SAMPLE_COUNT_4_BIT,
+      .storageImageSampleCounts                 = VK_SAMPLE_COUNT_1_BIT|VK_SAMPLE_COUNT_4_BIT,
       .maxSampleMaskWords                       = 1,
       .timestampComputeAndGraphics              = true,
-      .timestampPeriod                          = 1000000000.0 / devinfo->timestamp_frequency,
+      .timestampPeriod                          = 0,
       .maxClipDistances                         = 8,
       .maxCullDistances                         = 8,
       .maxCombinedClipAndCullDistances          = 8,
       .discreteQueuePriorities                  = 2,
-      .pointSizeRange                           = { 0.125, 255.875 },
-      .lineWidthRange                           = { 0.0, 7.9921875 },
-      .pointSizeGranularity                     = (1.0 / 8.0),
-      .lineWidthGranularity                     = (1.0 / 128.0),
-      .strictLines                              = false, /* FINISHME */
-      .standardSampleLocations                  = true,
-      .optimalBufferCopyOffsetAlignment         = 128,
-      .optimalBufferCopyRowPitchAlignment       = 128,
-      .nonCoherentAtomSize                      = 64,
+      .pointSizeRange                           = { 1.0f, 0.0f }, // Will be set further down
+      .lineWidthRange                           = { 1.0f, 0.0f }, // Will be set further down
+      .pointSizeGranularity                     = 0,
+      .lineWidthGranularity                     = 0,
+      .strictLines                              = false,
+      .standardSampleLocations                  = false,
+      .optimalBufferCopyOffsetAlignment         = 0,
+      .optimalBufferCopyRowPitchAlignment       = 0,
+      .nonCoherentAtomSize                      = 1,
    };
-#endif
+
+   limits.pointSizeRange[1] = 64.0f - limits.pointSizeGranularity;
+   limits.lineWidthRange[1] = 8.0f - limits.lineWidthGranularity;
+
+#define CTSMIN(a,b) ((a) < (b) ? (a) : (b))
+
+   // appease CTS
+   limits.maxPerStageResources = CTSMIN(128, limits.maxPerStageDescriptorUniformBuffers   +
+                                             limits.maxPerStageDescriptorStorageBuffers   +
+                                             limits.maxPerStageDescriptorSampledImages    +
+                                             limits.maxPerStageDescriptorStorageImages    +
+                                             limits.maxPerStageDescriptorInputAttachments +
+                                             limits.maxColorAttachments);
+
    *pProperties = (VkPhysicalDeviceProperties) {
       .apiVersion = v3dvk_physical_device_api_version(pdevice),
       .driverVersion = vk_get_driver_version(),
