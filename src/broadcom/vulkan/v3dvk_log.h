@@ -2,6 +2,9 @@
 #ifndef V3DVK_LOG_H
 #define V3DVK_LOG_H
 
+#include <stdarg.h>
+#include <vulkan/vulkan_core.h>
+
 #define v3dvk_printflike(a, b) __attribute__((__format__(__printf__, a, b)))
 
 void __v3dvk_perf_warn(struct v3dvk_instance *instance, const void *object,

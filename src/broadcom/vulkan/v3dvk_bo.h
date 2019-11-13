@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015 Intel Corporation
+ * Copyright © 2014-2017 Broadcom
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,29 +21,30 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef V3DVK_QUEUE_H
-#define V3DVK_QUEUE_H
+#ifndef V3DVK_BO_H
+#define V3DVK_BO_H
 
-#include <vulkan/vk_icd.h>
-#include "v3dvk_fence.h"
+struct v3dvk_bo {
+#if 0
+        const char *name;
+        uint32_t handle;
+        uint32_t size;
 
-#define V3DVK_MAX_QUEUE_FAMILIES 1
+        /* Address of the BO in our page tables. */
+        uint32_t offset;
 
-struct v3dvk_device;
-
-struct v3dvk_queue {
-    VK_LOADER_DATA                              _loader_data;
-
-    struct v3dvk_device *                       device;
-
-    VkDeviceQueueCreateFlags                    flags;
-    struct v3dvk_fence                          submit_fence;
+        /** Entry in the linked list of buffers freed, by age. */
+        struct list_head time_list;
+        /** Entry in the per-page-count linked list of buffers freed (by age). */
+        struct list_head size_list;
+        /** Approximate second when the bo was freed. */
+        time_t free_time;
+        /**
+         * Whether only our process has a reference to the BO (meaning that
+         * it's safe to reuse it in the BO cache).
+         */
+        bool private;
+#endif
 };
 
-void
-v3dvk_queue_init(struct v3dvk_device *device, struct v3dvk_queue *queue);
-
-void
-v3dvk_queue_finish(struct v3dvk_queue *queue);
-
-#endif
+#endif /* V3DVK_BO_H */

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2015 Intel Corporation
+ * Copyright © 2014-2017 Broadcom
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,29 +21,26 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef V3DVK_QUEUE_H
-#define V3DVK_QUEUE_H
+#ifndef V3DVK_CL_H
+#define V3DVK_CL_H
 
-#include <vulkan/vk_icd.h>
-#include "v3dvk_fence.h"
+#include <stdint.h>
+#include "v3dvk_bo.h"
 
-#define V3DVK_MAX_QUEUE_FAMILIES 1
+struct v3d_cl;
 
-struct v3dvk_device;
+/**
+ * Undefined structure, used for typechecking that you're passing the pointers
+ * to these functions correctly.
+ */
+struct v3dvk_cl_out;
 
-struct v3dvk_queue {
-    VK_LOADER_DATA                              _loader_data;
-
-    struct v3dvk_device *                       device;
-
-    VkDeviceQueueCreateFlags                    flags;
-    struct v3dvk_fence                          submit_fence;
+struct v3dvk_cl {
+        void *base;
+        struct v3dvk_job *job;
+        struct v3d_cl_out *next;
+        struct v3d_bo *bo;
+        uint32_t size;
 };
 
-void
-v3dvk_queue_init(struct v3dvk_device *device, struct v3dvk_queue *queue);
-
-void
-v3dvk_queue_finish(struct v3dvk_queue *queue);
-
-#endif
+#endif /* V3DVK_CL_H */

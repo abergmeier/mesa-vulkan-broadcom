@@ -340,7 +340,27 @@ VkResult v3dvk_CreateDevice(
 
    anv_scratch_pool_init(device, &device->scratch_pool);
 #endif
-   v3dvk_queue_init(device, &device->queue);
+   for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
+      const VkDeviceQueueCreateInfo *queue_create =
+         &pCreateInfo->pQueueCreateInfos[i];
+      uint32_t qfi = queue_create->queueFamilyIndex;
+      device->queues[qfi] = vk_alloc(
+         &device->alloc, queue_create->queueCount * sizeof(struct v3dvk_queue),
+         8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
+      if (!device->queues[qfi]) {
+         result = VK_ERROR_OUT_OF_HOST_MEMORY;
+         goto fail_queues;
+      }
+
+      memset(device->queues[qfi], 0,
+             queue_create->queueCount * sizeof(struct v3dvk_queue));
+
+      device->queue_count[qfi] = queue_create->queueCount;
+
+      for (unsigned q = 0; q < queue_create->queueCount; q++) {
+         v3dvk_queue_init(device, &device->queues[qfi][q]);
+      }
+   }
 #if 0
    switch (device->info.gen) {
    case 7:
@@ -379,9 +399,18 @@ VkResult v3dvk_CreateDevice(
    *pDevice = v3dvk_device_to_handle(device);
 
    return VK_SUCCESS;
-
  fail_workaround_bo:
-   v3dvk_queue_finish(&device->queue);
+ fail_queues:
+   for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
+      const VkDeviceQueueCreateInfo *queue_create =
+         &pCreateInfo->pQueueCreateInfos[i];
+      uint32_t qfi = queue_create->queueFamilyIndex;
+      device->queue_count[qfi] = queue_create->queueCount;
+      for (unsigned q = 0; q < queue_create->queueCount; q++) {
+         v3dvk_queue_finish(&device->queues[qfi][q]);
+      }
+      vk_free(&device->alloc, device->queues[qfi]);
+   }
 #if 0
    anv_scratch_pool_finish(device, &device->scratch_pool);
    anv_gem_munmap(device->workaround_bo.map, device->workaround_bo.size);
@@ -443,7 +472,13 @@ void v3dvk_DestroyDevice(
 
    anv_pipeline_cache_finish(&device->default_pipeline_cache);
 #endif
-   v3dvk_queue_finish(&device->queue);
+
+   for (unsigned i = 0; i < V3DVK_MAX_QUEUE_FAMILIES; i++) {
+      for (unsigned q = 0; q < device->queue_count[i]; q++)
+         v3dvk_queue_finish(&device->queues[i][q]);
+      if (device->queue_count[i])
+         vk_free(&device->alloc, device->queues[i]);
+   }
 
 #ifdef HAVE_VALGRIND
    /* We only need to free these to prevent valgrind errors.  The backing
@@ -485,4 +520,59 @@ void v3dvk_DestroyDevice(
    close(device->fd);
 
    vk_free(&device->alloc, device);
+}
+
+void
+v3dvk_GetDeviceQueue(VkDevice _device,
+                  uint32_t queueFamilyIndex,
+                  uint32_t queueIndex,
+                  VkQueue *pQueue)
+{
+   const VkDeviceQueueInfo2 info =
+      (VkDeviceQueueInfo2) { .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2,
+                             .queueFamilyIndex = queueFamilyIndex,
+                             .queueIndex = queueIndex };
+
+   v3dvk_GetDeviceQueue2(_device, &info, pQueue);
+}
+
+void
+v3dvk_GetDeviceQueue2(VkDevice _device,
+                   const VkDeviceQueueInfo2 *pQueueInfo,
+                   VkQueue *pQueue)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   struct v3dvk_queue *queue;
+
+   queue =
+      &device->queues[pQueueInfo->queueFamilyIndex][pQueueInfo->queueIndex];
+   if (pQueueInfo->flags != queue->flags) {
+      /* From the Vulkan 1.1.70 spec:
+       *
+       * "The queue returned by vkGetDeviceQueue2 must have the same
+       * flags value from this structure as that used at device
+       * creation time in a VkDeviceQueueCreateInfo instance. If no
+       * matching flags were specified at device creation time then
+       * pQueue will return VK_NULL_HANDLE."
+       */
+      *pQueue = VK_NULL_HANDLE;
+      return;
+   }
+
+   *pQueue = v3dvk_queue_to_handle(queue);
+}
+
+VkResult v3dvk_DeviceWaitIdle(
+    VkDevice                                    _device)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   if (v3dvk_device_is_lost(device))
+      return VK_ERROR_DEVICE_LOST;
+
+   for (unsigned i = 0; i < V3DVK_MAX_QUEUE_FAMILIES; i++) {
+      for (unsigned q = 0; q < device->queue_count[i]; q++) {
+         v3dvk_QueueWaitIdle(v3dvk_queue_to_handle(&device->queues[i][q]));
+      }
+   }
+   return VK_SUCCESS;
 }

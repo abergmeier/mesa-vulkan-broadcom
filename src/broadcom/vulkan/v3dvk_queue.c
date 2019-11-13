@@ -3,7 +3,6 @@
 #include <vulkan/vulkan.h>
 #include "common.h"
 #include "device.h"
-#include "v3dvk_batch.h"
 #include "v3dvk_cmd_buffer.h"
 #include "v3dvk_queue.h"
 
@@ -91,7 +90,6 @@ VkResult v3dvk_QueueSubmit(
          V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd_buffer,
                          pSubmits[i].pCommandBuffers[j]);
          assert(cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-         assert(!v3dvk_batch_has_error(&cmd_buffer->batch));
 
          /* Fence for this execbuf.  NULL for all but the last one */
          VkFence execbuf_fence =
@@ -145,15 +143,28 @@ out:
    return result;
 }
 
+VkResult v3dvk_QueueWaitIdle(
+    VkQueue                                     _queue)
+{
+   V3DVK_FROM_HANDLE(v3dvk_queue, queue, _queue);
+
+   v3dvk_fence_wait_idle(&queue->submit_fence);
+
+   return VK_SUCCESS;
+}
+
 void
 v3dvk_queue_init(struct v3dvk_device *device, struct v3dvk_queue *queue)
 {
    queue->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
    queue->device = device;
    queue->flags = 0;
+
+   v3dvk_fence_init(&queue->submit_fence, false);
 }
 
 void
 v3dvk_queue_finish(struct v3dvk_queue *queue)
 {
+   v3dvk_fence_finish(&queue->submit_fence);
 }

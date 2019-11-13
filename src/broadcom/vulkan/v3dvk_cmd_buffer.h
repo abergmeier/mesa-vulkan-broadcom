@@ -28,7 +28,7 @@
 #include <vulkan/vk_icd.h>
 #include <vulkan/vulkan.h>
 #include "util/list.h"
-#include "v3dvk_batch.h"
+#include "v3dvk_job.h"
 #include "v3dvk_defines.h"
 
 struct v3dvk_cmd_pool;
@@ -270,7 +270,7 @@ struct v3dvk_cmd_buffer {
    struct v3dvk_cmd_pool *                      pool;
    struct list_head                             pool_link;
 
-   struct v3dvk_batch                           batch;
+   struct v3dvk_job                             job;
 #if 0
    /* Fields required for the actual chain of anv_batch_bo's.
     *

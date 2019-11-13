@@ -45,7 +45,8 @@ struct v3dvk_device {
     struct v3dvk_device_extension_table         enabled_extensions;
     struct v3dvk_device_dispatch_table          dispatch;
 
-    struct v3dvk_queue                          queue;
+    struct v3dvk_queue* queues[V3DVK_MAX_QUEUE_FAMILIES];
+    int queue_count[V3DVK_MAX_QUEUE_FAMILIES];
 
     pthread_mutex_t                             mutex;
     pthread_cond_t                              queue_submit;
