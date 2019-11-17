@@ -25,7 +25,7 @@
 #define VC5_CL_H
 
 #include <stdint.h>
-#include "v3d_bo.h"
+#include "v3dvk_bo.h"
 
 struct v3d_job;
 struct v3d_cl;
@@ -38,7 +38,7 @@ struct v3d_cl_out;
 
 /** A reference to a BO used in the CL packing functions */
 struct v3d_cl_reloc {
-        struct v3d_bo *bo;
+        struct v3dvk_bo *bo;
         uint32_t offset;
 };
 
@@ -46,7 +46,7 @@ struct v3d_cl_reloc {
  * Reference to a BO with its associated offset, used in the pack process.
  */
 static inline struct v3d_cl_reloc
-cl_address(struct v3d_bo *bo, uint32_t offset)
+cl_address(struct v3dvk_bo *bo, uint32_t offset)
 {
         struct v3d_cl_reloc reloc = {
                 .bo = bo,
@@ -67,11 +67,11 @@ struct v3d_cl {
         void *base;
         struct v3d_job *job;
         struct v3d_cl_out *next;
-        struct v3d_bo *bo;
+        struct v3dvk_bo *bo;
         uint32_t size;
 };
 
-void v3d_job_add_bo(struct v3d_job *job, struct v3d_bo *bo);
+void v3d_job_add_bo(struct v3d_job *job, struct v3dvk_bo *bo);
 
 /**
  * Helper function called by the XML-generated pack functions for filling in

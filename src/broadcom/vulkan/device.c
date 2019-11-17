@@ -26,11 +26,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <vulkan/vulkan_core.h>
 #include "util/debug.h"
 #include "vulkan/util/vk_util.h"
 #include "common.h"
 #include "device.h"
 #include "instance.h"
+#include "v3dvk_buffer.h"
+#include "v3dvk_error.h"
 #include "v3dvk_gem.h"
 #include "v3dvk_physical_device.h"
 
@@ -575,4 +578,44 @@ VkResult v3dvk_DeviceWaitIdle(
       }
    }
    return VK_SUCCESS;
+}
+
+VkResult
+v3dvk_CreateBuffer(VkDevice _device,
+                const VkBufferCreateInfo *pCreateInfo,
+                const VkAllocationCallbacks *pAllocator,
+                VkBuffer *pBuffer)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   struct v3dvk_buffer *buffer;
+
+   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
+
+   buffer = vk_alloc2(&device->alloc, pAllocator, sizeof(*buffer), 8,
+                      VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (buffer == NULL)
+      return v3dvk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   buffer->size = pCreateInfo->size;
+   buffer->usage = pCreateInfo->usage;
+#if 0
+   buffer->flags = pCreateInfo->flags;
+#endif
+   *pBuffer = v3dvk_buffer_to_handle(buffer);
+
+   return VK_SUCCESS;
+}
+
+void
+v3dvk_DestroyBuffer(VkDevice _device,
+                 VkBuffer _buffer,
+                 const VkAllocationCallbacks *pAllocator)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   V3DVK_FROM_HANDLE(v3dvk_buffer, buffer, _buffer);
+
+   if (!buffer)
+      return;
+
+   vk_free2(&device->alloc, pAllocator, buffer);
 }
