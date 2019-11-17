@@ -1,5 +1,23 @@
 
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <xf86drm.h>
+#include <drm/msm_drm.h>
+#include "device.h"
 #include "v3dvk_gem.h"
+
+void
+v3dvk_gem_close(const struct v3dvk_device *dev, uint32_t gem_handle)
+{
+   struct drm_gem_close req = {
+      .handle = gem_handle,
+   };
+
+   int ret = drmIoctl(dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
+   if (ret != 0)
+           fprintf(stderr, "close object %d: %s\n", gem_handle, strerror(errno));
+}
 
 int
 v3dvk_gem_gpu_get_reset_stats(struct v3dvk_device *device,
