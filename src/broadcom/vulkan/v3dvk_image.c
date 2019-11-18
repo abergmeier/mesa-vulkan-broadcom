@@ -109,9 +109,9 @@ v3dvk_image_create(VkDevice _device,
       return VK_SUCCESS;
    }
 
+#if 0
    const struct v3dvk_format *format = v3dvk_get_format(image->vk_format);
    assert(format != NULL);
-#if 0
    const isl_tiling_flags_t isl_tiling_flags =
       choose_isl_tiling_flags(create_info, isl_mod_info,
                               image->needs_set_tiling);
