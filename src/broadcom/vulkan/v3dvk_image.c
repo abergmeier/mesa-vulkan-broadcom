@@ -30,6 +30,7 @@
 #include "common.h"
 #include "device.h"
 #include "v3dvk_defines.h"
+#include "v3dvk_error.h"
 #include "v3dvk_formats.h"
 #include "v3dvk_image.h"
 #include "vk_format_info.h"
@@ -71,7 +72,7 @@ v3dvk_image_create(VkDevice _device,
    image = vk_zalloc2(&device->alloc, alloc, sizeof(*image), 8,
                        VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!image)
-      return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+      return v3dvk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    image->type = pCreateInfo->imageType;
    image->extent = pCreateInfo->extent;

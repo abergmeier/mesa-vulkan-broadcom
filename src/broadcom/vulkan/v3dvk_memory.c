@@ -4,6 +4,7 @@
 #include "common.h"
 #include "device.h"
 #include "v3dvk_bo.h"
+#include "v3dvk_error.h"
 #include "v3dvk_memory.h"
 
 struct v3dvk_device_memory
@@ -42,7 +43,7 @@ v3dvk_alloc_memory(struct v3dvk_device *device,
    mem = vk_alloc2(&device->alloc, pAllocator, sizeof(*mem), 8,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (mem == NULL)
-      return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
+      return v3dvk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 #if 0
    const VkImportMemoryFdInfoKHR *fd_info =
       vk_find_struct_const(pAllocateInfo->pNext, IMPORT_MEMORY_FD_INFO_KHR);
