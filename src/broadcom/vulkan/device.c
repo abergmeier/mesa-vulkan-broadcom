@@ -170,6 +170,8 @@ VkResult v3dvk_CreateDevice(
    if (!device)
       return vk_error(VK_ERROR_OUT_OF_HOST_MEMORY);
 
+   memset(device, 0, sizeof(*device));
+
 #if 0
    if (INTEL_DEBUG & DEBUG_BATCH) {
       const unsigned decode_flags =
@@ -343,6 +345,7 @@ VkResult v3dvk_CreateDevice(
 
    anv_scratch_pool_init(device, &device->scratch_pool);
 #endif
+
    for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
       const VkDeviceQueueCreateInfo *queue_create =
          &pCreateInfo->pQueueCreateInfos[i];
@@ -389,10 +392,10 @@ VkResult v3dvk_CreateDevice(
        * gens. */
       unreachable("unhandled gen");
    }
-#endif
+
    if (result != VK_SUCCESS)
       goto fail_workaround_bo;
-#if 0
+
    anv_pipeline_cache_init(&device->default_pipeline_cache, device, true);
 
    anv_device_init_blorp(device);
@@ -409,10 +412,13 @@ VkResult v3dvk_CreateDevice(
          &pCreateInfo->pQueueCreateInfos[i];
       uint32_t qfi = queue_create->queueFamilyIndex;
       device->queue_count[qfi] = queue_create->queueCount;
+      struct v3dvk_queue* qs = device->queues[qfi];
+      if (!qs)
+         continue;
       for (unsigned q = 0; q < queue_create->queueCount; q++) {
-         v3dvk_queue_finish(&device->queues[qfi][q]);
+         v3dvk_queue_finish(&qs[q]);
       }
-      vk_free(&device->alloc, device->queues[qfi]);
+      vk_free(&device->alloc, qs);
    }
 #if 0
    anv_scratch_pool_finish(device, &device->scratch_pool);
