@@ -33,6 +33,7 @@
 #include "v3dvk_error.h"
 #include "v3dvk_formats.h"
 #include "v3dvk_image.h"
+#include "v3dvk_memory.h"
 #include "vk_format_info.h"
 
 VkResult
@@ -274,4 +275,41 @@ v3dvk_GetImageMemoryRequirements2(VkDevice device,
 {
    v3dvk_GetImageMemoryRequirements(device, pInfo->image,
                                     &pMemoryRequirements->memoryRequirements);
+}
+
+VkResult
+v3dvk_BindImageMemory2(VkDevice device,
+                       uint32_t bindInfoCount,
+                       const VkBindImageMemoryInfo *pBindInfos)
+{
+   for (uint32_t i = 0; i < bindInfoCount; ++i) {
+      V3DVK_FROM_HANDLE(v3dvk_image, image, pBindInfos[i].image);
+      V3DVK_FROM_HANDLE(v3dvk_device_memory, mem, pBindInfos[i].memory);
+
+      if (mem) {
+         image->bo = &mem->bo;
+         image->bo_offset = pBindInfos[i].memoryOffset;
+      } else {
+         image->bo = NULL;
+         image->bo_offset = 0;
+      }
+   }
+
+   return VK_SUCCESS;
+}
+
+VkResult
+v3dvk_BindImageMemory(VkDevice device,
+                      VkImage image,
+                      VkDeviceMemory memory,
+                      VkDeviceSize memoryOffset)
+{
+   const VkBindImageMemoryInfo info = {
+      .sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO,
+      .image = image,
+      .memory = memory,
+      .memoryOffset = memoryOffset
+   };
+
+   return v3dvk_BindImageMemory2(device, 1, &info);
 }

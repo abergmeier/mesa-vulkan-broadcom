@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <vulkan/vulkan.h>
 
+struct v3dvk_bo;
+
 struct v3dvk_image {
    VkImageType type; /**< VkImageCreateInfo::imageType */
    /* The original VkFormat provided by the client.  This may not match any
@@ -137,6 +139,9 @@ struct v3dvk_image {
       bool bo_is_owned;
    } planes[3];
 #endif
+   /* Set when bound */
+   struct v3dvk_bo *bo;
+   VkDeviceSize bo_offset;
 };
 
 struct v3dvk_image_create_info {
