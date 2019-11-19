@@ -25,6 +25,7 @@
 #define V3DVK_MEMORY_H
 
 #include <vulkan/vulkan.h>
+#include "v3dvk_bo.h"
 
 struct v3dvk_memory_type {
    /* Standard bits passed on to the client */
@@ -49,6 +50,22 @@ struct v3dvk_memory_heap {
    bool              supports_48bit_addresses;
 #endif
    VkDeviceSize      used;
+};
+
+struct v3dvk_device_memory
+{
+   struct v3dvk_bo bo;
+   VkDeviceSize size;
+#if 0
+   /* for dedicated allocations */
+   struct tu_image *image;
+   struct tu_buffer *buffer;
+#endif
+   uint32_t type_index;
+#if 0
+   void *map;
+   void *user_ptr;
+#endif
 };
 
 #endif

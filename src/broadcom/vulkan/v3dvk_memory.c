@@ -7,22 +7,6 @@
 #include "v3dvk_error.h"
 #include "v3dvk_memory.h"
 
-struct v3dvk_device_memory
-{
-   struct v3dvk_bo bo;
-   VkDeviceSize size;
-#if 0
-   /* for dedicated allocations */
-   struct tu_image *image;
-   struct tu_buffer *buffer;
-#endif
-   uint32_t type_index;
-#if 0
-   void *map;
-   void *user_ptr;
-#endif
-};
-
 static VkResult
 v3dvk_alloc_memory(struct v3dvk_device *device,
                 const VkMemoryAllocateInfo *pAllocateInfo,
