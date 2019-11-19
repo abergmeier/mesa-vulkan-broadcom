@@ -254,3 +254,24 @@ v3dvk_DestroyImage(VkDevice _device, VkImage _image,
 
    vk_free2(&device->alloc, pAllocator, image);
 }
+
+void
+v3dvk_GetImageMemoryRequirements(VkDevice _device,
+                              VkImage _image,
+                              VkMemoryRequirements *pMemoryRequirements)
+{
+   V3DVK_FROM_HANDLE(v3dvk_image, image, _image);
+
+   pMemoryRequirements->memoryTypeBits = 1;
+   pMemoryRequirements->size = image->size;
+   pMemoryRequirements->alignment = image->alignment;
+}
+
+void
+v3dvk_GetImageMemoryRequirements2(VkDevice device,
+                               const VkImageMemoryRequirementsInfo2 *pInfo,
+                               VkMemoryRequirements2 *pMemoryRequirements)
+{
+   v3dvk_GetImageMemoryRequirements(device, pInfo->image,
+                                    &pMemoryRequirements->memoryRequirements);
+}
