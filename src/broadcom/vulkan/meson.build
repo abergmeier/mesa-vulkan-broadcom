@@ -102,7 +102,7 @@ libv3dvk_files = files(
   'v3dvk_physical_device.c',
   'v3dvk_queue.c',
   'v3dvk_macro.h',
-  'v3dvk_semaphore.h',
+  'v3dvk_semaphore.c',
   'v3dvk_util.c',
   'wsi.c',
 )
