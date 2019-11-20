@@ -18,12 +18,6 @@ v3dvk_alloc_memory(struct v3dvk_device *device,
 
    assert(pAllocateInfo->sType == VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
 
-   if (pAllocateInfo->allocationSize == 0) {
-      /* Apparently, this is allowed */
-      *pMem = VK_NULL_HANDLE;
-      return VK_SUCCESS;
-   }
-
    mem = vk_alloc2(&device->alloc, pAllocator, sizeof(*mem), 8,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (mem == NULL)
@@ -53,8 +47,13 @@ v3dvk_alloc_memory(struct v3dvk_device *device,
       }
    } else {
 #endif
+   if (pAllocateInfo->allocationSize == 0) {
+      result =
+         v3dvk_bo_init_new(device, &mem->bo, 1);
+    } else {
       result =
          v3dvk_bo_init_new(device, &mem->bo, pAllocateInfo->allocationSize);
+    }
 #if 0
    }
 #endif
