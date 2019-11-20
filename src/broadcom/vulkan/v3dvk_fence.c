@@ -25,6 +25,11 @@
 #include <unistd.h>
 
 #include <libsync.h>
+#include "common.h"
+#include "device.h"
+#include "vk_alloc.h"
+#include "v3dvk_entrypoints.h"
+#include "v3dvk_error.h"
 #include "v3dvk_fence.h"
 #include "v3dvk_log.h"
 #include "util/macros.h"
@@ -108,4 +113,42 @@ v3dvk_fence_wait_idle(struct v3dvk_fence *fence)
 
       v3dvk_fence_set_state(fence, V3DVK_FENCE_STATE_SIGNALED, -1);
    }
+}
+
+VkResult
+v3dvk_CreateFence(VkDevice _device,
+                  const VkFenceCreateInfo *pCreateInfo,
+                  const VkAllocationCallbacks *pAllocator,
+                  VkFence *pFence)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+
+   struct v3dvk_fence *fence =
+      vk_alloc2(&device->alloc, pAllocator, sizeof(*fence), 8,
+                VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+
+   if (!fence)
+      return v3dvk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   v3dvk_fence_init(fence, pCreateInfo->flags & VK_FENCE_CREATE_SIGNALED_BIT);
+
+   *pFence = v3dvk_fence_to_handle(fence);
+
+   return VK_SUCCESS;
+}
+
+void
+v3dvk_DestroyFence(VkDevice _device,
+                   VkFence _fence,
+                   const VkAllocationCallbacks *pAllocator)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   V3DVK_FROM_HANDLE(v3dvk_fence, fence, _fence);
+
+   if (!fence)
+      return;
+
+   v3dvk_fence_finish(fence);
+
+   vk_free2(&device->alloc, pAllocator, fence);
 }
