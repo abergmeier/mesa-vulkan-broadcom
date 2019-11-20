@@ -42,7 +42,8 @@ v3dvk_bo_init_new(struct v3dvk_device *dev, struct v3dvk_bo *bo, uint64_t size)
    }
 
    struct drm_v3d_create_bo create = {
-           .size = size
+      .flags = 0,
+      .size = size
    };
 
    int ret = drmIoctl(dev->fd, DRM_IOCTL_V3D_CREATE_BO, &create);
