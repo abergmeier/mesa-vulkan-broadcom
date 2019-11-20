@@ -16,8 +16,8 @@ struct v3dvk_image {
 
    VkImageAspectFlags aspects;
    VkExtent3D extent;
+   uint32_t layer_count;
    uint32_t levels;
-   uint32_t array_size;
    uint32_t samples; /**< VkImageCreateInfo::samples */
    uint32_t n_planes;
    VkImageUsageFlags usage; /**< VkImageCreateInfo::usage. */
@@ -142,6 +142,47 @@ struct v3dvk_image {
    /* Set when bound */
    struct v3dvk_bo *bo;
    VkDeviceSize bo_offset;
+};
+
+struct v3dvk_image_view {
+   const struct v3dvk_image *image; /**< VkImageViewCreateInfo::image */
+
+   VkImageViewType type;
+   VkImageAspectFlags aspect_mask;
+   VkFormat vk_format;
+#if 0
+   VkExtent3D extent; /**< Extent of VkImageViewCreateInfo::baseMipLevel. */
+
+   unsigned n_planes;
+   struct {
+      uint32_t image_plane;
+
+      struct isl_view isl;
+
+      /**
+       * RENDER_SURFACE_STATE when using image as a sampler surface with an
+       * image layout of SHADER_READ_ONLY_OPTIMAL or
+       * DEPTH_STENCIL_READ_ONLY_OPTIMAL.
+       */
+      struct anv_surface_state optimal_sampler_surface_state;
+
+      /**
+       * RENDER_SURFACE_STATE when using image as a sampler surface with an
+       * image layout of GENERAL.
+       */
+      struct anv_surface_state general_sampler_surface_state;
+
+      /**
+       * RENDER_SURFACE_STATE when using image as a storage image. Separate
+       * states for write-only and readable, using the real format for
+       * write-only and the lowered format for readable.
+       */
+      struct anv_surface_state storage_surface_state;
+      struct anv_surface_state writeonly_storage_surface_state;
+
+      struct brw_image_param storage_image_param;
+   } planes[3];
+#endif
 };
 
 struct v3dvk_image_create_info {

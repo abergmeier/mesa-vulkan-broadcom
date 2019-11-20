@@ -33,8 +33,19 @@
 #include "v3dvk_error.h"
 #include "v3dvk_formats.h"
 #include "v3dvk_image.h"
+#include "v3dvk_math.h"
 #include "v3dvk_memory.h"
 #include "vk_format_info.h"
+#include "vk_format.h"
+
+static inline uint32_t
+v3dvk_calc_layer_count(uint32_t image_layer_count,
+                       const VkImageSubresourceRange *range)
+{
+   return range->layerCount == VK_REMAINING_ARRAY_LAYERS
+             ? image_layer_count - range->baseArrayLayer
+             : range->layerCount;
+}
 
 VkResult
 v3dvk_image_create(VkDevice _device,
@@ -81,12 +92,12 @@ v3dvk_image_create(VkDevice _device,
    image->format = v3dvk_get_format(pCreateInfo->format);
    image->aspects = vk_format_aspects(image->vk_format);
    image->levels = pCreateInfo->mipLevels;
-   image->array_size = pCreateInfo->arrayLayers;
    image->samples = pCreateInfo->samples;
    image->usage = pCreateInfo->usage;
    image->create_flags = pCreateInfo->flags;
    image->tiling = pCreateInfo->tiling;
    image->disjoint = pCreateInfo->flags & VK_IMAGE_CREATE_DISJOINT_BIT;
+   image->layer_count = pCreateInfo->arrayLayers;
 #if 0
    image->needs_set_tiling = wsi_info && wsi_info->scanout;
    image->drm_format_mod = isl_mod_info ? isl_mod_info->modifier :
@@ -179,7 +190,7 @@ v3dvk_image_from_swapchain(VkDevice device,
    assert(swapchain_image->extent.width == pCreateInfo->extent.width);
    assert(swapchain_image->extent.height == pCreateInfo->extent.height);
    assert(swapchain_image->extent.depth == pCreateInfo->extent.depth);
-   assert(swapchain_image->array_size == pCreateInfo->arrayLayers);
+   assert(swapchain_image->layer_count == pCreateInfo->arrayLayers);
    /* Color attachment is added by the wsi code. */
    assert(swapchain_image->usage == (pCreateInfo->usage | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT));
 
@@ -209,6 +220,89 @@ v3dvk_image_from_swapchain(VkDevice device,
       pImage);
 }
 
+static void
+v3dvk_image_view_init(struct v3dvk_image_view *iview,
+                      struct v3dvk_device *device,
+                      const VkImageViewCreateInfo *pCreateInfo)
+{
+   V3DVK_FROM_HANDLE(v3dvk_image, image, pCreateInfo->image);
+   const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
+
+   switch (image->type) {
+   case VK_IMAGE_TYPE_1D:
+   case VK_IMAGE_TYPE_2D:
+      assert(range->baseArrayLayer + v3dvk_calc_layer_count(image->layer_count, range) <=
+             image->layer_count);
+      break;
+   case VK_IMAGE_TYPE_3D:
+      assert(range->baseArrayLayer + v3dvk_calc_layer_count(image->layer_count, range) <=
+             v3dvk_minify(image->extent.depth, range->baseMipLevel));
+      break;
+   default:
+      unreachable("bad VkImageType");
+   }
+
+   iview->image = image;
+   iview->type = pCreateInfo->viewType;
+
+   iview->aspect_mask = pCreateInfo->subresourceRange.aspectMask;
+
+   if (iview->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT) {
+      iview->vk_format = vk_format_stencil_only(iview->vk_format);
+   } else if (iview->aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT) {
+      iview->vk_format = vk_format_depth_only(iview->vk_format);
+   } else {
+      iview->vk_format = pCreateInfo->format;
+   }
+#if 0
+   // should we minify?
+   iview->extent = image->extent;
+
+   iview->base_layer = range->baseArrayLayer;
+   iview->layer_count = tu_get_layerCount(image, range);
+   iview->base_mip = range->baseMipLevel;
+   iview->level_count = tu_get_levelCount(image, range);
+
+   memset(iview->descriptor, 0, sizeof(iview->descriptor));
+
+   const struct tu_native_format *fmt = tu6_get_native_format(iview->vk_format);
+   assert(fmt && fmt->tex >= 0);
+
+   struct tu_image_level *slice0 = &image->levels[iview->base_mip];
+   uint32_t cpp = vk_format_get_blocksize(iview->vk_format);
+   uint32_t block_width = vk_format_get_blockwidth(iview->vk_format);
+   const VkComponentMapping *comps = &pCreateInfo->components;
+
+   iview->descriptor[0] =
+      A6XX_TEX_CONST_0_TILE_MODE(image->tile_mode) |
+      COND(vk_format_is_srgb(iview->vk_format), A6XX_TEX_CONST_0_SRGB) |
+      A6XX_TEX_CONST_0_FMT(fmt->tex) |
+      A6XX_TEX_CONST_0_SAMPLES(0) |
+      A6XX_TEX_CONST_0_SWAP(fmt->swap) |
+      A6XX_TEX_CONST_0_SWIZ_X(translate_swiz(comps->r, A6XX_TEX_X)) |
+      A6XX_TEX_CONST_0_SWIZ_Y(translate_swiz(comps->g, A6XX_TEX_Y)) |
+      A6XX_TEX_CONST_0_SWIZ_Z(translate_swiz(comps->b, A6XX_TEX_Z)) |
+      A6XX_TEX_CONST_0_SWIZ_W(translate_swiz(comps->a, A6XX_TEX_W)) |
+      A6XX_TEX_CONST_0_MIPLVLS(iview->level_count - 1);
+   iview->descriptor[1] =
+      A6XX_TEX_CONST_1_WIDTH(u_minify(image->extent.width, iview->base_mip)) |
+      A6XX_TEX_CONST_1_HEIGHT(u_minify(image->extent.height, iview->base_mip));
+   iview->descriptor[2] =
+      A6XX_TEX_CONST_2_FETCHSIZE(translate_fetchsize(cpp)) |
+      A6XX_TEX_CONST_2_PITCH(slice0->pitch / block_width * cpp) |
+      A6XX_TEX_CONST_2_TYPE(translate_tex_type(pCreateInfo->viewType));
+   if (pCreateInfo->viewType != VK_IMAGE_VIEW_TYPE_3D) {
+      iview->descriptor[3] = A6XX_TEX_CONST_3_ARRAY_PITCH(image->layer_size);
+   } else {
+      iview->descriptor[3] =
+         A6XX_TEX_CONST_3_MIN_LAYERSZ(image->levels[image->level_count - 1].size) |
+         A6XX_TEX_CONST_3_ARRAY_PITCH(slice0->size);
+   }
+   uint64_t base_addr = image->bo->iova + iview->base_layer * image->layer_size + slice0->offset;
+   iview->descriptor[4] = base_addr;
+   iview->descriptor[5] = base_addr >> 32 | A6XX_TEX_CONST_5_DEPTH(iview->layer_count);
+#endif
+}
 
 VkResult
 v3dvk_CreateImage(VkDevice device,
@@ -254,6 +348,40 @@ v3dvk_DestroyImage(VkDevice _device, VkImage _image,
    }
 
    vk_free2(&device->alloc, pAllocator, image);
+}
+
+VkResult
+v3dvk_CreateImageView(VkDevice _device,
+                      const VkImageViewCreateInfo *pCreateInfo,
+                      const VkAllocationCallbacks *pAllocator,
+                      VkImageView *pView)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   struct v3dvk_image_view *view;
+
+   view = vk_alloc2(&device->alloc, pAllocator, sizeof(*view), 8,
+                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (view == NULL)
+      return v3dvk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   v3dvk_image_view_init(view, device, pCreateInfo);
+
+   *pView = v3dvk_image_view_to_handle(view);
+
+   return VK_SUCCESS;
+}
+
+void
+v3dvk_DestroyImageView(VkDevice _device,
+                       VkImageView _iview,
+                       const VkAllocationCallbacks *pAllocator)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   V3DVK_FROM_HANDLE(v3dvk_image_view, iview, _iview);
+
+   if (!iview)
+      return;
+   vk_free2(&device->alloc, pAllocator, iview);
 }
 
 void
