@@ -94,6 +94,7 @@ libv3dvk_files = files(
   'v3dvk_cmd_buffer.c',
   'v3dvk_cmd_pool.c',
   'v3dvk_error.c',
+  'v3dvk_event.c',
   'v3dvk_fence.c',
   'v3dvk_formats.c',
   'v3dvk_gem.c',
