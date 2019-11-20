@@ -81,6 +81,7 @@ V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_fence, VkFence)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_framebuffer, VkFramebuffer)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_image, VkImage)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_image_view, VkImageView)
+V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_query_pool, VkQueryPool)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_render_pass, VkRenderPass)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_semaphore, VkSemaphore)
 
