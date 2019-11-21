@@ -85,5 +85,6 @@ V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_query_pool, VkQueryPool)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_render_pass, VkRenderPass)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_sampler, VkSampler)
 V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_semaphore, VkSemaphore)
+V3DVK_DEFINE_NONDISP_HANDLE_CASTS(v3dvk_shader_module, VkShaderModule)
 
 #endif // V3DVK_COMMON_H

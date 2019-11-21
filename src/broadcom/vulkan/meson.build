@@ -106,6 +106,7 @@ libv3dvk_files = files(
   'v3dvk_macro.h',
   'v3dvk_sampler.c',
   'v3dvk_semaphore.c',
+  'v3dvk_shader.c',
   'v3dvk_util.c',
   'wsi.c',
 )
