@@ -22,6 +22,7 @@ v3dvk_alloc_memory(struct v3dvk_device *device,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (mem == NULL)
       return v3dvk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+   memset(&mem->bo, 0, sizeof(mem->bo));
 #if 0
    const VkImportMemoryFdInfoKHR *fd_info =
       vk_find_struct_const(pAllocateInfo->pNext, IMPORT_MEMORY_FD_INFO_KHR);
