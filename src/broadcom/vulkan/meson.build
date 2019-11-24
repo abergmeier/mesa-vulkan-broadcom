@@ -105,7 +105,7 @@ libv3dvk_files = files(
   'v3dvk_pipeline_cache.c',
   'v3dvk_query.c',
   'v3dvk_queue.c',
-  'v3dvk_macro.h',
+  'v3dvk_pass.c',
   'v3dvk_sampler.c',
   'v3dvk_semaphore.c',
   'v3dvk_shader.c',
