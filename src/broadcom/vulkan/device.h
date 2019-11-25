@@ -34,6 +34,8 @@
 #include "v3dvk_entrypoints.h"
 #include "v3dvk_queue.h"
 
+struct v3d_compiler;
+
 struct v3dvk_device {
     VK_LOADER_DATA                              _loader_data;
 
@@ -41,6 +43,7 @@ struct v3dvk_device {
 
     struct v3dvk_instance *                     instance;
     struct v3d_device_info                      info;
+    const struct v3d_compiler *                 compiler;
     int                                         fd;
     struct v3dvk_device_extension_table         enabled_extensions;
     struct v3dvk_device_dispatch_table          dispatch;

@@ -27,6 +27,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <vulkan/vulkan_core.h>
+#include "compiler/v3d_compiler.h"
 #include "util/debug.h"
 #include "vulkan/util/vk_util.h"
 #include "common.h"
@@ -246,6 +247,8 @@ VkResult v3dvk_CreateDevice(
    }
 #endif
    device->info = physical_device->info;
+
+   device->compiler = v3d_compiler_init(&device->info);
 #if 0
    /* On Broadwell and later, we can use batch chaining to more efficiently
     * implement growing command buffers.  Prior to Haswell, the kernel
@@ -505,6 +508,9 @@ void v3dvk_DestroyDevice(
 
    anv_vma_free(device, &device->trivial_batch_bo);
    anv_gem_close(device, device->trivial_batch_bo.gem_handle);
+#endif
+   v3d_compiler_free(device->compiler);
+#if 0
    if (device->info.gen >= 10)
       anv_gem_close(device, device->hiz_clear_bo.gem_handle);
 
