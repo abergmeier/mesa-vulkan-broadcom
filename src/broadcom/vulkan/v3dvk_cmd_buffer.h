@@ -28,6 +28,7 @@
 #include <vulkan/vk_icd.h>
 #include <vulkan/vulkan.h>
 #include "util/list.h"
+#include "v3d_cl.h"
 #include "v3dvk_job.h"
 #include "v3dvk_defines.h"
 
@@ -308,6 +309,11 @@ struct v3dvk_cmd_buffer {
    VkCommandBufferLevel                         level;
 
    struct v3dvk_cmd_state                       state;
+
+   // Taken reference from v3d_job.h
+   struct v3d_cl bcl;
+   struct v3d_cl rcl;
+   struct v3d_cl indirect;
 };
 
 void

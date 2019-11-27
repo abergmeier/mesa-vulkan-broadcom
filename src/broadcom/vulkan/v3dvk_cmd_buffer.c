@@ -21,6 +21,9 @@
  * IN THE SOFTWARE.
  */
 
+#include <assert.h>
+#include "common/v3d_macros.h"
+#include <cle/v3d_packet_v42_pack.h>
 #include "common.h"
 #include "v3dvk_buffer.h"
 #include "v3dvk_cmd_buffer.h"
@@ -399,4 +402,69 @@ v3dvk_cmd_buffer_execbuf(struct v3dvk_device *device,
    anv_execbuf_finish(&execbuf, &device->alloc);
 #endif
    return result;
+}
+
+void
+v3dvk_CmdBeginRenderPass(VkCommandBuffer commandBuffer,
+                         const VkRenderPassBeginInfo *pRenderPassBegin,
+                         VkSubpassContents contents)
+{
+   V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd_buffer, commandBuffer);
+   V3DVK_FROM_HANDLE(v3dvk_render_pass, pass, pRenderPassBegin->renderPass);
+   V3DVK_FROM_HANDLE(v3dvk_framebuffer, framebuffer, pRenderPassBegin->framebuffer);
+   VkResult result;
+
+   cmd_buffer->state.pass = pass;
+   cmd_buffer->state.subpass = pass->subpasses;
+   cmd_buffer->state.framebuffer = framebuffer;
+#if 0
+   result = tu_cmd_state_setup_attachments(cmd_buffer, pRenderPassBegin);
+   if (result != VK_SUCCESS)
+      return;
+
+   tu_cmd_update_tiling_config(cmd_buffer, &pRenderPassBegin->renderArea);
+   tu_cmd_prepare_tile_load_ib(cmd_buffer);
+   tu_cmd_prepare_tile_store_ib(cmd_buffer);
+#endif
+   /* Get space to emit our BCL state, using a branch to jump to a new BO
+    * if necessary.
+    */
+   v3d_cl_ensure_space_with_branch(&cmd_buffer->bcl, 256 /* XXX */);
+
+   cl_emit(&cmd_buffer->bcl, TILE_BINNING_MODE_CFG, config) {
+      config.width_in_pixels = cmd_buffer->state.framebuffer.width;
+      config.height_in_pixels = cmd_buffer->state.framebuffer.height;
+      config.number_of_render_targets =
+         MAX2(cmd_buffer->state.framebuffer.nr_cbufs, 1);
+#if 0
+      config.multisample_mode_4x = job->msaa;
+      config.maximum_bpp_of_all_render_targets = job->internal_bpp;
+#endif
+   }
+
+   /* draw_cl should contain entries only for this render pass */
+   assert(!cl_offset(&cmd_buffer->draw_cl));
+   v3d_init_cl(cmd_buffer->draw_cl);
+   cmd_buffer->draw_cl_out = cl_start(&cmd_buffer->draw_cl);
+}
+
+
+void
+v3dvk_CmdEndRenderPass(VkCommandBuffer commandBuffer)
+{
+   V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd_buffer, commandBuffer);
+
+   cl_end(&cmd_buffer->draw_cl, cmd_buffer->draw_cl_out);
+
+   v3dvk_cmd_render_tiles(cmd_buffer);
+
+   /* discard draw_cs entries now that the tiles are rendered */
+   v3dvk_cs_discard_entries(&cmd_buffer->draw_cs);
+
+   vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.attachments);
+   cmd_buffer->state.attachments = NULL;
+
+   cmd_buffer->state.pass = NULL;
+   cmd_buffer->state.subpass = NULL;
+   cmd_buffer->state.framebuffer = NULL;
 }
