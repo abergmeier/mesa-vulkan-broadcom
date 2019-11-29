@@ -50,10 +50,10 @@ v3dvk_alloc_memory(struct v3dvk_device *device,
 #endif
    if (pAllocateInfo->allocationSize == 0) {
       result =
-         v3dvk_bo_init_new(device, &mem->bo, 1);
+         v3dvk_bo_init_new(device, &mem->bo, 1, "alloc");
     } else {
       result =
-         v3dvk_bo_init_new(device, &mem->bo, pAllocateInfo->allocationSize);
+         v3dvk_bo_init_new(device, &mem->bo, pAllocateInfo->allocationSize, "alloc");
     }
 #if 0
    }
