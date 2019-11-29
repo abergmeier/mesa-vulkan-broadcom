@@ -17,9 +17,7 @@ v3d_cl_ensure_space_with_branch(struct v3d_cl *cl, uint32_t space)
    if (!new_bo)
       return; // FIXME: Handle this properly
 
-        new_bo->name = "CL";
-
-        VkResult result = v3dvk_bo_init_new(cl->dev, new_bo, space);
+        VkResult result = v3dvk_bo_init_new(cl->dev, new_bo, "CL", space);
         if (result != VK_SUCCESS) {
            // FIXME: Properly handle this
            assert(false);

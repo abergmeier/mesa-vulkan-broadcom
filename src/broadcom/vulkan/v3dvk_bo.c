@@ -40,16 +40,17 @@ v3dvk_bo_init(struct v3dvk_bo *bo,
 }
 
 VkResult
-v3dvk_bo_init_new(struct v3dvk_device *dev, struct v3dvk_bo *bo, uint64_t size)
+v3dvk_bo_init_new(struct v3dvk_device *dev, struct v3dvk_bo *bo, uint64_t size, const char* name)
 {
    assert(bo);
+   assert(name);
    /* The CLIF dumping requires that there is no whitespace in the name.
     */
-   assert(!strchr(bo->name, ' '));
+   assert(!strchr(name, ' '));
 
    size = align(size, 4096);
 
-   VkResult result = v3dvk_bo_init(bo, bo->name, size);
+   VkResult result = v3dvk_bo_init(bo, name, size);
    if (result != VK_SUCCESS) {
       return result;
    }

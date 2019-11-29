@@ -60,7 +60,7 @@ struct v3dvk_bo {
 
 
 VkResult
-v3dvk_bo_init_new(struct v3dvk_device *dev, struct v3dvk_bo *bo, uint64_t size);
+v3dvk_bo_init_new(struct v3dvk_device *dev, struct v3dvk_bo *bo, uint64_t size, const char* name);
 void
 v3dvk_bo_finish(struct v3dvk_device *dev, struct v3dvk_bo *bo);
 
