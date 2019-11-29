@@ -24,6 +24,7 @@
 #define VG(x)
 #endif
 
+// FIXME: Disable this once we are more stable
 static bool dump_stats = true;
 
 static VkResult
