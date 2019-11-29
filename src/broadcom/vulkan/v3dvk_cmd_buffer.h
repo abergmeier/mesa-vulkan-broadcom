@@ -27,10 +27,11 @@
 
 #include <vulkan/vk_icd.h>
 #include <vulkan/vulkan.h>
+#include <drm-uapi/v3d_drm.h>
 #include "util/list.h"
 #include "v3d_cl.h"
-#include "v3dvk_job.h"
 #include "v3dvk_defines.h"
+#include "v3dvk_log.h"
 
 struct v3dvk_cmd_pool;
 struct v3dvk_device;
@@ -198,6 +199,9 @@ struct v3dvk_cmd_compute_state {
 
 /** State required while building cmd buffer */
 struct v3dvk_cmd_state {
+
+   struct v3dvk_pipeline *pipeline;
+
    /* PIPELINE_SELECT.PipelineSelection */
    uint32_t                                     current_pipeline;
 #if 0
@@ -271,7 +275,6 @@ struct v3dvk_cmd_buffer {
    struct v3dvk_cmd_pool *                      pool;
    struct list_head                             pool_link;
 
-   struct v3dvk_job                             job;
 #if 0
    /* Fields required for the actual chain of anv_batch_bo's.
     *
@@ -314,6 +317,18 @@ struct v3dvk_cmd_buffer {
    struct v3d_cl bcl;
    struct v3d_cl rcl;
    struct v3d_cl indirect;
+
+   struct drm_v3d_submit_cl submit;
+
+   /**
+    * Set of all BOs referenced by the command buffer. This will be used for making
+    * the list of BOs that the kernel will need to have paged in to
+    * execute our command buffer.
+    */
+   struct set *bos;
+
+   /* Size of the submit.bo_handles array. */
+   uint32_t bo_handles_size;
 };
 
 void
@@ -364,6 +379,9 @@ struct v3dvk_render_pass {
    struct v3dvk_render_pass_attachment *        attachments;
    struct v3dvk_subpass                         subpasses[0];
 };
+
+void
+v3dvk_cmd_buffer_add_bo(struct v3dvk_cmd_buffer *cmd, struct v3dvk_bo *bo);
 
 VkResult v3dvk_cmd_buffer_execbuf(struct v3dvk_device *device,
                                   struct v3dvk_cmd_buffer *cmd_buffer,

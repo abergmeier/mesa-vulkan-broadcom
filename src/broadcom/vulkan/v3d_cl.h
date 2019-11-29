@@ -25,13 +25,16 @@
 #define VC5_CL_H
 
 #include <stdint.h>
+#include "v3dvk_bo.h"
+
+#define V3D_VERSION 42
 
 #include "broadcom/cle/v3d_packet_helpers.h"
 
 
-struct v3dvk_bo;
 struct v3d_job;
 struct v3d_cl;
+struct v3dvk_device;
 
 /**
  * Undefined structure, used for typechecking that you're passing the pointers
@@ -45,6 +48,14 @@ struct v3d_cl_reloc {
         uint32_t offset;
 };
 
+static inline struct v3d_cl_reloc
+__unpack_address(const uint8_t *cl, uint32_t s, uint32_t e)
+{
+    struct v3d_cl_reloc reloc =
+            { NULL, __gen_unpack_uint(cl, s, e) << (31 - (e - s)) };
+    return reloc;
+}
+
 static inline void cl_pack_emit_reloc(struct v3d_cl *cl, const struct v3d_cl_reloc *);
 
 #define __gen_user_data struct v3d_cl
@@ -52,52 +63,16 @@ static inline void cl_pack_emit_reloc(struct v3d_cl *cl, const struct v3d_cl_rel
 #define __gen_address_offset(reloc) (((reloc)->bo ? (reloc)->bo->offset : 0) + \
                                      (reloc)->offset)
 #define __gen_emit_reloc cl_pack_emit_reloc
+#define __gen_unpack_address(cl, s, e) __unpack_address(cl, s, e)
 
 struct v3d_cl {
         void *base;
-        struct v3d_job *job;
+        struct v3dvk_device *dev;
+        struct v3dvk_cmd_buffer *cmd;
         struct v3d_cl_out *next;
         struct v3dvk_bo *bo;
         uint32_t size;
 };
-
-
-static inline uint32_t cl_offset(struct v3d_cl *cl)
-{
-        return (char *)cl->next - (char *)cl->base;
-}
-
-static inline void
-cl_advance(struct v3d_cl_out **cl, uint32_t n)
-{
-        (*cl) = (struct v3d_cl_out *)((char *)(*cl) + n);
-}
-
-static inline struct v3d_cl_out *
-cl_start(struct v3d_cl *cl)
-{
-        return cl->next;
-}
-
-static inline void
-cl_end(struct v3d_cl *cl, struct v3d_cl_out *next)
-{
-        cl->next = next;
-        assert(cl_offset(cl) <= cl->size);
-}
-
-/**
- * Reference to a BO with its associated offset, used in the pack process.
- */
-static inline struct v3d_cl_reloc
-cl_address(struct v3dvk_bo *bo, uint32_t offset)
-{
-        struct v3d_cl_reloc reloc = {
-                .bo = bo,
-                .offset = offset,
-        };
-        return reloc;
-}
 
 void v3d_cl_ensure_space_with_branch(struct v3d_cl *cl, uint32_t size);
 
@@ -105,6 +80,14 @@ void v3d_cl_ensure_space_with_branch(struct v3d_cl *cl, uint32_t size);
 #define cl_packet_length(packet) V3DX(packet ## _length)
 #define cl_packet_pack(packet)   V3DX(packet ## _pack)
 #define cl_packet_struct(packet) V3DX(packet)
+
+static void
+cl_advance(struct v3d_cl_out **cl, uint32_t n);
+static struct v3d_cl_out *
+cl_start(struct v3d_cl *cl);
+static void
+cl_end(struct v3d_cl *cl, struct v3d_cl_out *next);
+
 
 /* Macro for setting up an emit of a CL struct.  A temporary unpacked struct
  * is created, which you get to set fields in of the form:
@@ -133,22 +116,5 @@ void v3d_cl_ensure_space_with_branch(struct v3d_cl *cl, uint32_t size);
                 cl_end(cl, cl_out);                              \
                 _loop_terminate = NULL;                          \
         }))
-
-void v3d_job_add_bo(struct v3d_job *job, struct v3dvk_bo *bo);
-
-/**
- * Helper function called by the XML-generated pack functions for filling in
- * an address field in shader records.
- *
- * Since we have a private address space as of VC5, our BOs can have lifelong
- * offsets, and all the kernel needs to know is which BOs need to be paged in
- * for this exec.
- */
-static inline void
-cl_pack_emit_reloc(struct v3d_cl *cl, const struct v3d_cl_reloc *reloc)
-{
-        if (reloc->bo)
-                v3d_job_add_bo(cl->job, reloc->bo);
-}
 
 #endif /* VC5_CL_H */

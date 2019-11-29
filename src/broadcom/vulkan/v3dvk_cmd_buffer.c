@@ -22,13 +22,22 @@
  */
 
 #include <assert.h>
+#include <stdlib.h>
+#define V3D_VERSION 42
 #include "common/v3d_macros.h"
+#include "v3d_cl.inl"
 #include <cle/v3d_packet_v42_pack.h>
+#include "util/macros.h"
+#include "util/set.h"
+#include "util/ralloc.h"
 #include "common.h"
+#include "vk_alloc.h"
 #include "v3dvk_buffer.h"
 #include "v3dvk_cmd_buffer.h"
 #include "v3dvk_cmd_pool.h"
 #include "v3dvk_entrypoints.h"
+#include "v3dvk_framebuffer.h"
+#include "v3dvk_log.h"
 #include "vulkan/util/vk_alloc.h"
 
 /* TODO: These are taken from GLES.  We should check the Vulkan spec */
@@ -78,6 +87,7 @@ v3dvk_cmd_state_init(struct v3dvk_cmd_buffer *cmd_buffer)
    state->gfx.dynamic = default_dynamic_state;
 }
 
+
 static void
 v3dvk_cmd_state_finish(struct v3dvk_cmd_buffer *cmd_buffer)
 {
@@ -94,6 +104,32 @@ v3dvk_cmd_state_reset(struct v3dvk_cmd_buffer *cmd_buffer)
 {
    v3dvk_cmd_state_finish(cmd_buffer);
    v3dvk_cmd_state_init(cmd_buffer);
+}
+
+void
+v3dvk_cmd_buffer_add_bo(struct v3dvk_cmd_buffer *cmd, struct v3dvk_bo *bo)
+{
+   if (!bo)
+      return;
+
+   if (_mesa_set_search(cmd->bos, bo))
+       return;
+#if 0
+   v3d_bo_reference(bo);
+#endif
+   _mesa_set_add(cmd->bos, bo);
+#if 0
+        job->referenced_size += bo->size;
+#endif
+   uint32_t *bo_handles = (void *)(uintptr_t)cmd->submit.bo_handles;
+
+   if (cmd->submit.bo_handle_count >= cmd->bo_handles_size) {
+      cmd->bo_handles_size = MAX2(4, cmd->bo_handles_size * 2);
+      bo_handles = reralloc(cmd, bo_handles,
+                            uint32_t, cmd->bo_handles_size);
+      cmd->submit.bo_handles = (uintptr_t)(void *)bo_handles;
+   }
+   bo_handles[cmd->submit.bo_handle_count++] = bo->handle;
 }
 
 void
@@ -432,35 +468,67 @@ v3dvk_CmdBeginRenderPass(VkCommandBuffer commandBuffer,
    v3d_cl_ensure_space_with_branch(&cmd_buffer->bcl, 256 /* XXX */);
 
    cl_emit(&cmd_buffer->bcl, TILE_BINNING_MODE_CFG, config) {
-      config.width_in_pixels = cmd_buffer->state.framebuffer.width;
-      config.height_in_pixels = cmd_buffer->state.framebuffer.height;
+      // FIXME: No idea how to implement offset natively in V3D
+      config.width_in_pixels = pRenderPassBegin->renderArea.offset.x + pRenderPassBegin->renderArea.extent.width;
+      config.height_in_pixels = pRenderPassBegin->renderArea.offset.y + pRenderPassBegin->renderArea.extent.height;
       config.number_of_render_targets =
-         MAX2(cmd_buffer->state.framebuffer.nr_cbufs, 1);
+         1;
 #if 0
+         MAX2(cmd_buffer->state.framebuffer->nr_cbufs, 1);
       config.multisample_mode_4x = job->msaa;
       config.maximum_bpp_of_all_render_targets = job->internal_bpp;
 #endif
    }
 
-   /* draw_cl should contain entries only for this render pass */
-   assert(!cl_offset(&cmd_buffer->draw_cl));
-   v3d_init_cl(cmd_buffer->draw_cl);
-   cmd_buffer->draw_cl_out = cl_start(&cmd_buffer->draw_cl);
+   /* There's definitely nothing in the VCD cache we want. */
+   cl_emit(&cmd_buffer->bcl, FLUSH_VCD_CACHE, bin);
+
+   /* Disable any leftover OQ state from another job. */
+   cl_emit(&cmd_buffer->bcl, OCCLUSION_QUERY_COUNTER, counter);
+
+   /* "Binning mode lists must have a Start Tile Binning item (6) after
+    *  any prefix state data before the binning list proper starts."
+    */
+   cl_emit(&cmd_buffer->bcl, START_TILE_BINNING, bin);
+#if 0
+   job->draw_width = v3d->framebuffer.width;
+   job->draw_height = v3d->framebuffer.height;
+#endif
 }
 
+void
+v3dvk_CmdBindPipeline(VkCommandBuffer commandBuffer,
+                      VkPipelineBindPoint pipelineBindPoint,
+                      VkPipeline _pipeline)
+{
+   V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd, commandBuffer);
+   V3DVK_FROM_HANDLE(v3dvk_pipeline, pipeline, _pipeline);
+
+   switch (pipelineBindPoint) {
+   case VK_PIPELINE_BIND_POINT_GRAPHICS:
+      cmd->state.pipeline = pipeline;
+      break;
+   case VK_PIPELINE_BIND_POINT_COMPUTE:
+      v3dvk_finishme("binding compute pipeline");
+      break;
+   default:
+      unreachable("unrecognized pipeline bind point");
+      break;
+   }
+}
 
 void
 v3dvk_CmdEndRenderPass(VkCommandBuffer commandBuffer)
 {
    V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd_buffer, commandBuffer);
 
-   cl_end(&cmd_buffer->draw_cl, cmd_buffer->draw_cl_out);
-
+#if 0
    v3dvk_cmd_render_tiles(cmd_buffer);
 
    /* discard draw_cs entries now that the tiles are rendered */
    v3dvk_cs_discard_entries(&cmd_buffer->draw_cs);
 
+#endif
    vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.attachments);
    cmd_buffer->state.attachments = NULL;
 

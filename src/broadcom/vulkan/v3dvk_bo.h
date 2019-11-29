@@ -27,15 +27,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+#include <vulkan/vulkan.h>
 #include "util/list.h"
-#include "device.h"
+
+struct v3dvk_device;
 
 struct v3dvk_bo {
 #if 0
         struct pipe_reference reference;
-        struct v3d_screen *screen;
-        void *map;
 #endif
+   struct v3dvk_device * dev;
+   void *map;
         const char *name;
         uint32_t handle;
         uint32_t size;
@@ -61,5 +63,12 @@ VkResult
 v3dvk_bo_init_new(struct v3dvk_device *dev, struct v3dvk_bo *bo, uint64_t size);
 void
 v3dvk_bo_finish(struct v3dvk_device *dev, struct v3dvk_bo *bo);
+
+
+void *
+v3dvk_bo_map(struct v3dvk_bo *bo);
+
+void *
+v3dvk_bo_map_unsynchronized(struct v3dvk_bo *bo);
 
 #endif /* V3DVK_BO_H */

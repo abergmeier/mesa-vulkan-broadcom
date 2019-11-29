@@ -34,25 +34,7 @@
 #include "vk_enum_to_str.h"
 #include "v3dvk_log.h"
 
-/** Log an error message.  */
-void v3dvk_printflike(1, 2)
-v3dvk_loge(const char *format, ...)
-{
-   va_list va;
-
-   va_start(va, format);
-   v3dvk_loge_v(format, va);
-   va_end(va);
-}
-
-/** \see anv_loge() */
-void
-v3dvk_loge_v(const char *format, va_list va)
-{
-   broadcom_loge_v(format, va);
-}
-
-void v3dvk_printflike(6, 7)
+void V3DVK_PRINTFLIKE(6, 7)
 __v3dvk_perf_warn(struct v3dvk_instance *instance, const void *object,
                   VkDebugReportObjectTypeEXT type,
                   const char *file, int line, const char *format, ...)

@@ -25,7 +25,6 @@
 #include <vulkan/vulkan.h>
 // Needs to be in front to define certain symbols
 #include "v3d_cl.h"
-#define V3D_VERSION 42
 #include "cle/v3dx_pack.h"
 #include "common.h"
 #include "v3dvk_cmd_buffer.h"

@@ -38,6 +38,14 @@ struct v3dvk_app_info {
    uint32_t           api_version;
 };
 
+enum v3dvk_debug_flags
+{
+   V3DVK_DEBUG_STARTUP = 1 << 0,
+   V3DVK_DEBUG_NIR = 1 << 1,
+   V3DVK_DEBUG_IR3 = 1 << 2,
+   V3DVK_DEBUG_PERF = 1 << 8,
+};
+
 struct v3dvk_instance {
     VK_LOADER_DATA                              _loader_data;
 
@@ -54,6 +62,8 @@ struct v3dvk_instance {
     struct v3dvk_physical_device                physicalDevice;
 
     bool                                        pipeline_cache_enabled;
+
+   enum v3dvk_debug_flags debug_flags;
 
     struct vk_debug_report_instance             debug_report_callbacks;
 };
