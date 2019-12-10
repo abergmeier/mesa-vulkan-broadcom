@@ -54,6 +54,9 @@ struct v3dvk_device {
     pthread_mutex_t                             mutex;
     pthread_cond_t                              queue_submit;
     bool                                        _lost;
+
+    /* Whether the app has enabled the robustBufferAccess feature. */
+    bool robust_buffer_access;
 };
 
 VkResult _v3dvk_device_set_lost(struct v3dvk_device *device,
