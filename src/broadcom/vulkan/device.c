@@ -256,9 +256,9 @@ VkResult v3dvk_CreateDevice(
     * the batch.
     */
    device->can_chain_batches = device->info.gen >= 8;
+#endif
    device->robust_buffer_access = pCreateInfo->pEnabledFeatures &&
       pCreateInfo->pEnabledFeatures->robustBufferAccess;
-#endif
    device->enabled_extensions = enabled_extensions;
 
    v3dvk_device_init_dispatch(device);
