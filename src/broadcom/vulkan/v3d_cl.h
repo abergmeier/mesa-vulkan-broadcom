@@ -76,10 +76,10 @@ struct v3d_cl {
 
 void v3d_cl_ensure_space_with_branch(struct v3d_cl *cl, uint32_t size);
 
-#define cl_packet_header(packet) V3DX(packet ## _header)
-#define cl_packet_length(packet) V3DX(packet ## _length)
-#define cl_packet_pack(packet)   V3DX(packet ## _pack)
-#define cl_packet_struct(packet) V3DX(packet)
+#define cl_packet_header(packet) V3D42_ ## packet ## _header
+#define cl_packet_length(packet) V3D42_ ## packet ## _length
+#define cl_packet_pack(packet)   V3D42_ ## packet ## _pack
+#define cl_packet_struct(packet) V3D42_ ## packet
 
 static void
 cl_advance(struct v3d_cl_out **cl, uint32_t n);
