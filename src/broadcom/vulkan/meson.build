@@ -140,6 +140,7 @@ v3dvk_deps = [
 v3dvk_flags = [
   c_vis_args,
   no_override_init_args,
+  '-Werror=int-conversion',
 ]
 
 libv3dvk_common = static_library(
