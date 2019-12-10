@@ -33,4 +33,9 @@ void v3dvk_loge_v(const char *format, va_list va);
       }                                                                      \
    } while (0)
 
+#define V3DVK_STUB()                                                         \
+   do {                                                                      \
+      V3DVK_FINISHME("stub %s", __func__);                                   \
+   } while (0)
+
 #endif
