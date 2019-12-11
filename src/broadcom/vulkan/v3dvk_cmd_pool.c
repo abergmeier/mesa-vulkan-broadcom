@@ -25,6 +25,7 @@ VkResult v3dvk_CreateCommandPool(
       pool->alloc = device->alloc;
 
    list_inithead(&pool->cmd_buffers);
+   list_inithead(&pool->free_cmd_buffers);
 
    *pCmdPool = v3dvk_cmd_pool_to_handle(pool);
 
@@ -44,6 +45,12 @@ void v3dvk_DestroyCommandPool(
 
    list_for_each_entry_safe(struct v3dvk_cmd_buffer, cmd_buffer,
                             &pool->cmd_buffers, pool_link) {
+      v3dvk_cmd_buffer_destroy(cmd_buffer);
+   }
+
+   list_for_each_entry_safe(struct v3dvk_cmd_buffer, cmd_buffer,
+                            &pool->free_cmd_buffers, pool_link)
+   {
       v3dvk_cmd_buffer_destroy(cmd_buffer);
    }
 

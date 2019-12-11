@@ -62,10 +62,9 @@ struct v3dvk_device_memory
    struct tu_buffer *buffer;
 #endif
    uint32_t type_index;
-#if 0
+
    void *map;
    void *user_ptr;
-#endif
 };
 
 #endif

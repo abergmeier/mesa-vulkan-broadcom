@@ -65,10 +65,10 @@ void
 v3dvk_bo_finish(struct v3dvk_device *dev, struct v3dvk_bo *bo);
 
 
-void *
+void
 v3dvk_bo_map(struct v3dvk_bo *bo);
 
-void *
+void
 v3dvk_bo_map_unsynchronized(struct v3dvk_bo *bo);
 
 #endif /* V3DVK_BO_H */

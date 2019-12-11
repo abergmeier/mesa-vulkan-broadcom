@@ -30,12 +30,15 @@
 #include "util/macros.h"
 #include "util/set.h"
 #include "util/ralloc.h"
+#include "util/hash_table.h"
 #include "common.h"
+#include "device.h"
 #include "vk_alloc.h"
 #include "v3dvk_buffer.h"
 #include "v3dvk_cmd_buffer.h"
 #include "v3dvk_cmd_pool.h"
 #include "v3dvk_entrypoints.h"
+#include "v3dvk_error.h"
 #include "v3dvk_framebuffer.h"
 #include "v3dvk_log.h"
 #include "vulkan/util/vk_alloc.h"
@@ -87,7 +90,6 @@ v3dvk_cmd_state_init(struct v3dvk_cmd_buffer *cmd_buffer)
    state->gfx.dynamic = default_dynamic_state;
 }
 
-
 static void
 v3dvk_cmd_state_finish(struct v3dvk_cmd_buffer *cmd_buffer)
 {
@@ -132,39 +134,106 @@ v3dvk_cmd_buffer_add_bo(struct v3dvk_cmd_buffer *cmd, struct v3dvk_bo *bo)
    bo_handles[cmd->submit.bo_handle_count++] = bo->handle;
 }
 
+static VkResult
+v3dvk_create_cmd_buffer(struct v3dvk_device *device,
+                        struct v3dvk_cmd_pool *pool,
+                        VkCommandBufferLevel level,
+                        VkCommandBuffer *pCommandBuffer)
+{
+   struct v3dvk_cmd_buffer *cmd_buffer;
+   cmd_buffer = vk_zalloc(&pool->alloc, sizeof(*cmd_buffer), 8,
+                          VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (cmd_buffer == NULL)
+      return v3dvk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   VkResult result = v3dvk_cmd_buffer_init(cmd_buffer, device, pool, level);
+   if (result != VK_SUCCESS) {
+      return result;
+   }
+
+   *pCommandBuffer = v3dvk_cmd_buffer_to_handle(cmd_buffer);
+   return VK_SUCCESS;
+}
+
+VkResult
+v3dvk_cmd_buffer_init(struct v3dvk_cmd_buffer *cmd_buffer,
+                      struct v3dvk_device *device,
+                      struct v3dvk_cmd_pool *pool,
+                      VkCommandBufferLevel level)
+{
+   cmd_buffer->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
+   cmd_buffer->device = device;
+   cmd_buffer->pool = pool;
+   cmd_buffer->level = level;
+
+   if (pool) {
+      list_addtail(&cmd_buffer->pool_link, &pool->cmd_buffers);
+      cmd_buffer->queue_family_index = pool->queue_family_index;
+
+   } else {
+      /* Init the pool_link so we can safely call list_del when we destroy
+       * the command buffer
+       */
+      list_inithead(&cmd_buffer->pool_link);
+      cmd_buffer->queue_family_index = V3DVK_QUEUE_GENERAL;
+   }
+
+
+   // _mesa_set_create uses ralloc details for ctx. Thus no sense to pass our
+   // non-ralloced cmd_buffer
+   cmd_buffer->bos = _mesa_set_create(NULL,
+                                      _mesa_hash_pointer,
+                                      _mesa_key_pointer_equal);
+   v3d_init_cl(cmd_buffer, &cmd_buffer->bcl);
+   v3d_init_cl(cmd_buffer, &cmd_buffer->rcl);
+   v3d_init_cl(cmd_buffer, &cmd_buffer->indirect);
+
+#if 0
+   list_inithead(&cmd_buffer->upload.list);
+   cmd_buffer->marker_reg = REG_A6XX_CP_SCRATCH_REG(
+      cmd_buffer->level == VK_COMMAND_BUFFER_LEVEL_PRIMARY ? 7 : 6);
+   VkResult result = tu_bo_init_new(device, &cmd_buffer->scratch_bo, 0x1000);
+   if (result != VK_SUCCESS)
+      return result;
+#endif
+
+   return VK_SUCCESS;
+}
+
+
 void
 v3dvk_cmd_buffer_destroy(struct v3dvk_cmd_buffer *cmd_buffer)
 {
+#if 0
+   tu_bo_finish(cmd_buffer->device, &cmd_buffer->scratch_bo);
+#endif
    list_del(&cmd_buffer->pool_link);
 #if 0
-   anv_cmd_buffer_fini_batch_bo_chain(cmd_buffer);
-
-   anv_state_stream_finish(&cmd_buffer->surface_state_stream);
-   anv_state_stream_finish(&cmd_buffer->dynamic_state_stream);
-
-   anv_cmd_state_finish(cmd_buffer);
+   for (unsigned i = 0; i < VK_PIPELINE_BIND_POINT_RANGE_SIZE; i++)
+      free(cmd_buffer->descriptors[i].push_set.set.mapped_ptr);
 #endif
+
+   v3d_destroy_cl(&cmd_buffer->bcl);
+   v3d_destroy_cl(&cmd_buffer->rcl);
+   v3d_destroy_cl(&cmd_buffer->indirect);
+
+   set_foreach(cmd_buffer->bos, entry) {
+      struct v3d_bo *bo = (struct v3d_bo *)entry->key;
+#if 0
+      v3d_bo_unreference(&bo);
+#endif
+   }
+#if 0
    vk_free(&cmd_buffer->pool->alloc, cmd_buffer);
+#endif
 }
 
 VkResult
 v3dvk_cmd_buffer_reset(struct v3dvk_cmd_buffer *cmd_buffer)
 {
-   cmd_buffer->usage_flags = 0;
-#if 0
-   anv_cmd_buffer_reset_batch_bo_chain(cmd_buffer);
-#endif
-   v3dvk_cmd_state_reset(cmd_buffer);
-#if 0
-   anv_state_stream_finish(&cmd_buffer->surface_state_stream);
-   anv_state_stream_init(&cmd_buffer->surface_state_stream,
-                         &cmd_buffer->device->surface_state_pool, 4096);
 
-   anv_state_stream_finish(&cmd_buffer->dynamic_state_stream);
-   anv_state_stream_init(&cmd_buffer->dynamic_state_stream,
-                         &cmd_buffer->device->dynamic_state_pool, 16384);
-#endif
-   return VK_SUCCESS;
+   v3dvk_cmd_buffer_destroy(cmd_buffer);
+   return v3dvk_cmd_buffer_init(cmd_buffer, cmd_buffer->device, cmd_buffer->pool, cmd_buffer->level);
 }
 
 void v3dvk_CmdBindTransformFeedbackBuffersEXT(
@@ -192,6 +261,79 @@ void v3dvk_CmdBindTransformFeedbackBuffersEXT(
          xfb[firstBinding + i].size =
             v3dvk_buffer_get_range(buffer, pOffsets[i],
                                    pSizes ? pSizes[i] : VK_WHOLE_SIZE);
+      }
+   }
+}
+
+VkResult
+v3dvk_AllocateCommandBuffers(VkDevice _device,
+                             const VkCommandBufferAllocateInfo *pAllocateInfo,
+                             VkCommandBuffer *pCommandBuffers)
+{
+   V3DVK_FROM_HANDLE(v3dvk_device, device, _device);
+   V3DVK_FROM_HANDLE(v3dvk_cmd_pool, pool, pAllocateInfo->commandPool);
+
+   VkResult result = VK_SUCCESS;
+   uint32_t i;
+
+   for (i = 0; i < pAllocateInfo->commandBufferCount; i++) {
+
+      if (!list_is_empty(&pool->free_cmd_buffers)) {
+         struct v3dvk_cmd_buffer *cmd_buffer = list_first_entry(
+            &pool->free_cmd_buffers, struct v3dvk_cmd_buffer, pool_link);
+
+         list_del(&cmd_buffer->pool_link);
+         list_addtail(&cmd_buffer->pool_link, &pool->cmd_buffers);
+
+         result = v3dvk_cmd_buffer_reset(cmd_buffer);
+         cmd_buffer->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
+         cmd_buffer->level = pAllocateInfo->level;
+
+         pCommandBuffers[i] = v3dvk_cmd_buffer_to_handle(cmd_buffer);
+      } else {
+         result = v3dvk_create_cmd_buffer(device, pool, pAllocateInfo->level,
+                                       &pCommandBuffers[i]);
+      }
+      if (result != VK_SUCCESS)
+         break;
+   }
+
+   if (result != VK_SUCCESS) {
+      v3dvk_FreeCommandBuffers(_device, pAllocateInfo->commandPool, i,
+                               pCommandBuffers);
+
+      /* From the Vulkan 1.0.66 spec:
+       *
+       * "vkAllocateCommandBuffers can be used to create multiple
+       *  command buffers. If the creation of any of those command
+       *  buffers fails, the implementation must destroy all
+       *  successfully created command buffer objects from this
+       *  command, set all entries of the pCommandBuffers array to
+       *  NULL and return the error."
+       */
+      memset(pCommandBuffers, 0,
+             sizeof(*pCommandBuffers) * pAllocateInfo->commandBufferCount);
+   }
+
+   return result;
+}
+
+void
+v3dvk_FreeCommandBuffers(VkDevice device,
+                         VkCommandPool commandPool,
+                         uint32_t commandBufferCount,
+                         const VkCommandBuffer *pCommandBuffers)
+{
+   for (uint32_t i = 0; i < commandBufferCount; i++) {
+      V3DVK_FROM_HANDLE(v3dvk_cmd_buffer, cmd_buffer, pCommandBuffers[i]);
+
+      if (cmd_buffer) {
+         if (cmd_buffer->pool) {
+            list_del(&cmd_buffer->pool_link);
+            list_addtail(&cmd_buffer->pool_link,
+                         &cmd_buffer->pool->free_cmd_buffers);
+         } else
+            v3dvk_cmd_buffer_destroy(cmd_buffer);
       }
    }
 }
@@ -509,7 +651,7 @@ v3dvk_CmdBindPipeline(VkCommandBuffer commandBuffer,
       cmd->state.pipeline = pipeline;
       break;
    case VK_PIPELINE_BIND_POINT_COMPUTE:
-      v3dvk_finishme("binding compute pipeline");
+      V3DVK_FINISHME("binding compute pipeline");
       break;
    default:
       unreachable("unrecognized pipeline bind point");

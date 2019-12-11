@@ -313,6 +313,8 @@ struct v3dvk_cmd_buffer {
 
    struct v3dvk_cmd_state                       state;
 
+   uint32_t queue_family_index;
+
    // Taken reference from v3d_job.h
    struct v3d_cl bcl;
    struct v3d_cl rcl;
@@ -331,6 +333,12 @@ struct v3dvk_cmd_buffer {
    uint32_t bo_handles_size;
 };
 
+
+VkResult
+v3dvk_cmd_buffer_init(struct v3dvk_cmd_buffer *cmd,
+                      struct v3dvk_device *device,
+                      struct v3dvk_cmd_pool *pool,
+                      VkCommandBufferLevel level);
 void
 v3dvk_cmd_buffer_destroy(struct v3dvk_cmd_buffer *cmd_buffer);
 

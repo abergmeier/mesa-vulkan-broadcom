@@ -69,6 +69,7 @@ v3dvk_bo_init_new(struct v3dvk_device *dev, struct v3dvk_bo *bo, uint64_t size, 
 
    bo->handle = create.handle;
    bo->offset = create.offset;
+   bo->dev    = dev;
 
    if (dump_stats) {
            fprintf(stderr, "Allocated %s %llukb:\n", bo->name, size / 1024);
@@ -104,9 +105,8 @@ static int v3dvk_wait_bo_ioctl(int fd, uint32_t handle, uint64_t timeout_ns)
 }
 
 static bool
-v3dvk_bo_wait(struct v3dvk_bo *bo, uint64_t timeout_ns, const char *reason)
+v3dvk_bo_wait(const struct v3dvk_bo *bo, uint64_t timeout_ns, const char *reason)
 {
-
    if (unlikely(bo->dev->instance->debug_flags & V3DVK_DEBUG_PERF) && timeout_ns && reason) {
       if (v3dvk_wait_bo_ioctl(bo->dev->fd, bo->handle, 0) == -ETIME) {
          fprintf(stderr, "Blocking on %s BO for %s\n",
@@ -127,7 +127,7 @@ v3dvk_bo_wait(struct v3dvk_bo *bo, uint64_t timeout_ns, const char *reason)
    return true;
 }
 
-void *
+void
 v3dvk_bo_map_unsynchronized(struct v3dvk_bo *bo)
 {
    uint64_t offset;
@@ -158,16 +158,14 @@ v3dvk_bo_map_unsynchronized(struct v3dvk_bo *bo)
    return bo->map;
 }
 
-void *
+void
 v3dvk_bo_map(struct v3dvk_bo *bo)
 {
-   void *map = v3dvk_bo_map_unsynchronized(bo);
+   v3dvk_bo_map_unsynchronized(bo);
 
    bool ok = v3dvk_bo_wait(bo, PIPE_TIMEOUT_INFINITE, "bo map");
    if (!ok) {
       fprintf(stderr, "BO wait for map failed\n");
       abort();
    }
-
-   return map;
 }

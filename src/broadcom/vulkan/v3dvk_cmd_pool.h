@@ -29,8 +29,10 @@
 #include "util/list.h"
 
 struct v3dvk_cmd_pool {
-   VkAllocationCallbacks                        alloc;
-   struct list_head                             cmd_buffers;
+   VkAllocationCallbacks alloc;
+   struct list_head cmd_buffers;
+   struct list_head free_cmd_buffers;
+   uint32_t queue_family_index;
 };
 
 #endif

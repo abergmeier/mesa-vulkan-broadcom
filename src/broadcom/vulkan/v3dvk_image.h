@@ -183,6 +183,13 @@ struct v3dvk_image_view {
       struct brw_image_param storage_image_param;
    } planes[3];
 #endif
+
+   uint32_t descriptor[0];
+
+   /* Descriptor for use as a storage image as opposed to a sampled image.
+    * This has a few differences for cube maps (e.g. type).
+    */
+   uint32_t storage_descriptor[0];
 };
 
 struct v3dvk_image_create_info {

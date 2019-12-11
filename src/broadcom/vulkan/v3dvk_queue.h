@@ -27,6 +27,10 @@
 #include <vulkan/vk_icd.h>
 #include "v3dvk_fence.h"
 
+
+/* queue types */
+#define V3DVK_QUEUE_GENERAL 0
+
 #define V3DVK_MAX_QUEUE_FAMILIES 1
 
 struct v3dvk_device;

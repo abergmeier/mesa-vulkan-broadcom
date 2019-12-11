@@ -92,6 +92,7 @@ libv3dvk_files = files(
   'valgrind.h',
   'v3d_cl.c',
   'v3dvk_bo.c',
+  'v3dvk_buffer.c',
   'v3dvk_cmd_buffer.c',
   'v3dvk_cmd_pool.c',
   'v3dvk_descriptor_set.c',

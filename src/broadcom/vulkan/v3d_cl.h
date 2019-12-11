@@ -67,12 +67,14 @@ static inline void cl_pack_emit_reloc(struct v3d_cl *cl, const struct v3d_cl_rel
 
 struct v3d_cl {
         void *base;
-        struct v3dvk_device *dev;
         struct v3dvk_cmd_buffer *cmd;
         struct v3d_cl_out *next;
         struct v3dvk_bo *bo;
         uint32_t size;
 };
+
+void v3d_init_cl(struct v3dvk_cmd_buffer *cmd, struct v3d_cl *cl);
+void v3d_destroy_cl(struct v3d_cl *cl);
 
 void v3d_cl_ensure_space_with_branch(struct v3d_cl *cl, uint32_t size);
 

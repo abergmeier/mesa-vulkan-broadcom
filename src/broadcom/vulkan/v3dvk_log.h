@@ -24,7 +24,7 @@ void v3dvk_loge_v(const char *format, va_list va);
 /**
  * Print a FINISHME message, including its source location.
  */
-#define v3dvk_finishme(format, ...)                                          \
+#define V3DVK_FINISHME(format, ...)                                          \
    do {                                                                      \
       static bool reported = false;                                          \
       if (!reported) {                                                       \

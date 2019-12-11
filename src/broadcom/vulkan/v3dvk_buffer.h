@@ -21,6 +21,10 @@ struct v3dvk_buffer {
 
    /* Set when bound */
    struct v3dvk_address                         address;
+
+
+   struct v3dvk_bo *bo;
+   VkDeviceSize bo_offset;
 };
 
 static inline uint64_t
