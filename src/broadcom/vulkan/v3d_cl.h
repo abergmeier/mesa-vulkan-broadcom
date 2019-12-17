@@ -27,8 +27,6 @@
 #include <stdint.h>
 #include "v3dvk_bo.h"
 
-#define V3D_VERSION 42
-
 #include "broadcom/cle/v3d_packet_helpers.h"
 
 

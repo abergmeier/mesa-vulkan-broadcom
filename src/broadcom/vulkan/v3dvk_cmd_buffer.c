@@ -23,7 +23,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#define V3D_VERSION 42
+
 #include "common/v3d_macros.h"
 #include "v3d_cl.inl"
 #include <cle/v3d_packet_v42_pack.h>
