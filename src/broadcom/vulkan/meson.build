@@ -91,6 +91,7 @@ libv3dvk_files = files(
   'ioctl.h',
   'valgrind.h',
   'v3d_cl.c',
+  'v3d_tiling.c',
   'v3dvk_bo.c',
   'v3dvk_buffer.c',
   'v3dvk_cmd_buffer.c',
@@ -124,7 +125,7 @@ libv3dvk_gen_lib = static_library(
     inc_common, inc_compiler, inc_include, inc_broadcom, inc_vulkan_wsi,
   ],
   c_args : [
-    c_vis_args, no_override_init_args,
+    c_vis_args, no_override_init_args, '-D V3D_VERSION=42',
   ],
   dependencies : [
     dep_libdrm, dep_valgrind, idep_nir_headers, idep_vulkan_util_headers,
@@ -142,6 +143,7 @@ v3dvk_flags = [
   c_vis_args,
   no_override_init_args,
   '-Werror=int-conversion',
+  '-D V3D_VERSION=42',
 ]
 
 libv3dvk_common = static_library(
