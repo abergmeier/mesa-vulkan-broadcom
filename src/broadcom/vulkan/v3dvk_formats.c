@@ -23,6 +23,7 @@
 
 #include "vulkan/util/vk_util.h"
 #include "util/macros.h"
+#include "broadcom/common/v3d_limits.h"
 #include "common.h"
 #include "v3dvk_entrypoints.h"
 #include "v3dvk_formats.h"
@@ -116,24 +117,24 @@ v3dvk_get_image_format_properties(
    default:
       unreachable("bad VkImageType");
    case VK_IMAGE_TYPE_1D:
-#if 0
-      maxExtent.width = 16384;
+      maxExtent.width = 16384; // Only 14bit seem usable
       maxExtent.height = 1;
       maxExtent.depth = 1;
-      maxMipLevels = 15; /* log2(maxWidth) + 1 */
+      maxMipLevels = V3D_MAX_MIP_LEVELS;
+#if 0
       maxArraySize = 2048;
       sampleCounts = VK_SAMPLE_COUNT_1_BIT;
 #endif
       break;
    case VK_IMAGE_TYPE_2D:
-#if 0
       /* FINISHME: Does this really differ for cube maps? The documentation
        * for RENDER_SURFACE_STATE suggests so.
        */
       maxExtent.width = 16384;
       maxExtent.height = 16384;
       maxExtent.depth = 1;
-      maxMipLevels = 15; /* log2(maxWidth) + 1 */
+      maxMipLevels = V3D_MAX_MIP_LEVELS;
+#if 0
       maxArraySize = 2048;
 #endif
       break;
@@ -142,7 +143,9 @@ v3dvk_get_image_format_properties(
       maxExtent.width = 2048;
       maxExtent.height = 2048;
       maxExtent.depth = 2048;
-      maxMipLevels = 12; /* log2(maxWidth) + 1 */
+#endif
+      maxMipLevels = V3D_MAX_MIP_LEVELS;
+#if 0
       maxArraySize = 1;
 #endif
       break;
