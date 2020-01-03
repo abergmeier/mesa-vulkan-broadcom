@@ -28,9 +28,17 @@
 #define VK_FORMAT_H
 
 #include <assert.h>
-#include <util/macros.h>
-
 #include <vulkan/vulkan.h>
+#include <util/macros.h>
+#include <vulkan/util/vk_format.h>
+
+
+enum vk_format_colorspace {
+   VK_FORMAT_COLORSPACE_RGB = 0,
+   VK_FORMAT_COLORSPACE_SRGB = 1,
+   VK_FORMAT_COLORSPACE_YUV = 2,
+   VK_FORMAT_COLORSPACE_ZS = 3
+};
 
 static inline VkFormat
 vk_format_depth_only(VkFormat format)
