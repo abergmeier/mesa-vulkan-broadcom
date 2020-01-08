@@ -677,7 +677,7 @@ write_image_descriptor(struct v3dvk_device *device,
              const VkDescriptorImageInfo *image_info)
 {
    V3DVK_FROM_HANDLE(v3dvk_image_view, iview, image_info->imageView);
-   uint32_t *descriptor;
+   uint8_t *descriptor;
 
    if (descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
       descriptor = iview->storage_descriptor;

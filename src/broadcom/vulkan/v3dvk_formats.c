@@ -70,8 +70,9 @@ void v3dvk_GetPhysicalDeviceFormatProperties(
 {
    V3DVK_FROM_HANDLE(v3dvk_physical_device, physical_device, physicalDevice);
    const struct v3d_device_info *devinfo = &physical_device->info;
+#if 0
    const struct v3dvk_format *v3dvk_format = v3dvk_get_format(vk_format);
-
+#endif
    *pFormatProperties = (VkFormatProperties) {
       .linearTilingFeatures = 0,
 #if 0

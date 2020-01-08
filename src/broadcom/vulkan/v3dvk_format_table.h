@@ -28,12 +28,8 @@
 #include <stdint.h>
 
 #include <vulkan/vulkan.h>
+#include "v3d_cl.h"
 #include "cle/v3d_packet_v42_pack.h"
-
-struct v3dvk_format;
-
-const struct v3dvk_format *
-v3d42_get_format_desc(VkFormat f);
 
 void
 v3d42_get_internal_type_bpp_for_output_format(uint32_t format,

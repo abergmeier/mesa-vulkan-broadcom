@@ -117,4 +117,18 @@ cl_end(struct v3d_cl *cl, struct v3d_cl_out *next);
                 _loop_terminate = NULL;                          \
         }))
 
+
+#define v3dx_pack(packed, packet, name)                          \
+        for (struct cl_packet_struct(packet) name = {            \
+                cl_packet_header(packet)                         \
+        },                                                       \
+        *_loop_terminate = &name;                                \
+        __builtin_expect(_loop_terminate != NULL, 1);            \
+        ({                                                       \
+                cl_packet_pack(packet)(NULL, (uint8_t *)packed, &name); \
+                VG(VALGRIND_CHECK_MEM_IS_DEFINED((uint8_t *)packed, \
+                                                 cl_packet_length(packet))); \
+                _loop_terminate = NULL;                          \
+        }))                                                      \
+
 #endif /* VC5_CL_H */

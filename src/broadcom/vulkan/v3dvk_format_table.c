@@ -25,8 +25,8 @@
 #include "v3d_cl.h"
 #include "cle/v3dx_pack.h"
 #include "common/v3d_macros.h"
-#include "v3dvk_format.h"
 #include "v3dvk_format_table.h"
+#include "vk_format.h"
 
 #define SWIZ(x,y,z,w) {  \
         .r = VK_COMPONENT_SWIZZLE_##x, \
@@ -57,7 +57,7 @@
 #define SWIZ_XXXX	SWIZ(   R,    R,    R,   R)
 #define SWIZ_000X	SWIZ(ZERO, ZERO, ZERO,   R)
 
-static const struct v3dvk_format format_table[] = {
+static const struct vk_format_description format_table[] = {
         FORMAT(B8G8R8A8_UNORM,    RGBA8,        RGBA8,       SWIZ_ZYXW, 16, 0),
         FORMAT(B8G8R8A8_SRGB,     SRGB8_ALPHA8, RGBA8,       SWIZ_ZYXW, 16, 0),
         FORMAT(R8G8B8A8_UNORM,    RGBA8,        RGBA8,       SWIZ_XYZW, 16, 0),
@@ -119,8 +119,8 @@ static const struct v3dvk_format format_table[] = {
         FORMAT(D16_UNORM,         D16,          DEPTH_COMP16,SWIZ_XXXX, 32, 1),
 };
 
-const struct v3dvk_format *
-v3d42_get_format_desc(VkFormat f)
+const struct vk_format_description *
+v3d41_get_format_desc(VkFormat f)
 {
         if (f < ARRAY_SIZE(format_table))
                 return &format_table[f];
@@ -281,4 +281,17 @@ v3d42_tfu_supports_tex_format(enum V3D42_Texture_Data_Formats format)
         default:
                 return false;
         }
+}
+
+static inline bool
+vk_format_description_null(struct vk_format_description format) {
+   const char* mem = (char*)&format;
+
+   for (uint i = 0; i != sizeof(format); ++i) {
+      if ((mem + i) != 0) {
+         return false;
+      }
+   }
+
+   return true;
 }

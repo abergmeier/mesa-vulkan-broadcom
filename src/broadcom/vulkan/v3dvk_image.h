@@ -4,7 +4,32 @@
 #include <stdbool.h>
 #include <vulkan/vulkan.h>
 
+#include "broadcom/common/v3d_limits.h"
+#include "v3d_cl.h"
+#include "cle/v3d_packet_v42_pack.h"
+#include "v3d_tiling.h"
+
 struct v3dvk_bo;
+
+struct v3dvk_image_level
+{
+   VkDeviceSize offset;
+   VkDeviceSize size;
+   uint32_t pitch;
+};
+
+struct v3d_resource_slice {
+        uint32_t offset;
+        uint32_t stride;
+        uint32_t padded_height;
+        /* Size of a single pane of the slice.  For 3D textures, there will be
+         * a number of panes equal to the minified, power-of-two-aligned
+         * depth.
+         */
+        uint32_t size;
+        uint8_t ub_pad;
+        enum v3d_tiling_mode tiling;
+};
 
 struct v3dvk_image {
    VkImageType type; /**< VkImageCreateInfo::imageType */
@@ -15,15 +40,16 @@ struct v3dvk_image {
    const struct v3dvk_format *format;
 
    VkImageAspectFlags aspects;
+   VkImageUsageFlags usage;  /**< Superset of VkImageCreateInfo::usage. */
+   VkImageTiling tiling;     /** VkImageCreateInfo::tiling */
+   VkImageCreateFlags flags; /** VkImageCreateInfo::flags */
    VkExtent3D extent;
+   uint32_t level_count;
    uint32_t layer_count;
-   uint32_t levels;
    uint32_t samples; /**< VkImageCreateInfo::samples */
    uint32_t n_planes;
-   VkImageUsageFlags usage; /**< VkImageCreateInfo::usage. */
    VkImageUsageFlags stencil_usage;
    VkImageCreateFlags create_flags; /* Flags used when creating image. */
-   VkImageTiling tiling; /** VkImageCreateInfo::tiling */
 #if 0
    /** True if this is needs to be bound to an appropriately tiled BO.
     *
@@ -34,6 +60,9 @@ struct v3dvk_image {
     */
    bool needs_set_tiling;
 #endif
+
+
+   struct v3d_resource_slice slices[V3D_MAX_MIP_LEVELS];
    /**
     * Must be DRM_FORMAT_MOD_INVALID unless tiling is
     * VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT.
@@ -139,9 +168,16 @@ struct v3dvk_image {
       bool bo_is_owned;
    } planes[3];
 #endif
+   struct v3dvk_image_level levels[15];
+
+   uint16_t cube_map_stride;
+
    /* Set when bound */
    struct v3dvk_bo *bo;
    VkDeviceSize bo_offset;
+
+   int cpp;
+   uint32_t array_size;
 };
 
 struct v3dvk_image_view {
@@ -150,8 +186,12 @@ struct v3dvk_image_view {
    VkImageViewType type;
    VkImageAspectFlags aspect_mask;
    VkFormat vk_format;
-#if 0
+   uint32_t base_layer;
+   uint32_t layer_count;
+   uint32_t base_mip;
+   uint32_t level_count;
    VkExtent3D extent; /**< Extent of VkImageViewCreateInfo::baseMipLevel. */
+#if 0
 
    unsigned n_planes;
    struct {
@@ -184,12 +224,12 @@ struct v3dvk_image_view {
    } planes[3];
 #endif
 
-   uint32_t descriptor[0];
+   uint8_t descriptor[cl_packet_length(TEXTURE_SHADER_STATE)];
 
    /* Descriptor for use as a storage image as opposed to a sampled image.
     * This has a few differences for cube maps (e.g. type).
     */
-   uint32_t storage_descriptor[0];
+   uint8_t storage_descriptor[cl_packet_length(TEXTURE_SHADER_STATE)];
 };
 
 struct v3dvk_image_create_info {
