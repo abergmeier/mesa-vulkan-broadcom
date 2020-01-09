@@ -405,6 +405,8 @@ v3dvk_image_create(VkDevice _device,
    if (!image)
       return v3dvk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+    // TODO: Check whether this value is actually correct
+   image->array_size = 1;
    image->type = pCreateInfo->imageType;
    image->extent = pCreateInfo->extent;
    image->vk_format = pCreateInfo->format;
