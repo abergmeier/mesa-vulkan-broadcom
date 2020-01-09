@@ -224,7 +224,7 @@ struct v3dvk_image_view {
    } planes[3];
 #endif
 
-   uint8_t descriptor[cl_packet_length(TEXTURE_SHADER_STATE)];
+   uint8_t descriptor[cl_packet_length(TEXTURE_SHADER_STATE) + 1];
 
    /* Descriptor for use as a storage image as opposed to a sampled image.
     * This has a few differences for cube maps (e.g. type).
