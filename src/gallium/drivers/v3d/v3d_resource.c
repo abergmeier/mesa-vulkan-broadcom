@@ -430,7 +430,7 @@ v3d_resource_get_handle(struct pipe_screen *pscreen,
  *
  * The goal of the padding is to keep pages of the same color (bank number) at
  * least half a page away from each other vertically when crossing between
- * between columns of UIF blocks.
+ * columns of UIF blocks.
  */
 static uint32_t
 v3d_get_ub_pad(struct v3d_resource *rsc, uint32_t height)
