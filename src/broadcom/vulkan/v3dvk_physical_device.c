@@ -35,6 +35,7 @@
 
 #include "common.h"
 #include "device.h"
+#include "instance.h"
 #include "v3dvk_physical_device.h"
 #include "ioctl.h"
 #include <common/v3d_debug.h>
@@ -46,6 +47,8 @@
 #include <vulkan/util/vk_util.h>
 #include "v3dvk_constants.h"
 #include "v3dvk_defines.h"
+#include "v3dvk_error.h"
+#include "v3dvk_log.h"
 #include "v3dvk_macro.h"
 #include "wsi.h"
 #include "compiler/v3d_compiler.h"
@@ -187,22 +190,56 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
    const char *primary_path = drm_device->nodes[DRM_NODE_PRIMARY];
    const char *path = drm_device->nodes[DRM_NODE_RENDER];
    VkResult result;
+   drmVersionPtr version;
    int fd;
    int master_fd = -1;
 
    fd = open(path, O_RDWR | O_CLOEXEC);
    if (fd < 0) {
       if (errno == EACCES) {
-        return vk_error(VK_ERROR_INITIALIZATION_FAILED);
+        return v3dvk_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
+                           "failed to access device %s", path);
       }
-      return vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
+      return v3dvk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
+                          "failed to open device %s", path);
    }
+
+#if 0
+
+   const int min_version_major = 1;
+   const int min_version_minor = 3;
+#endif
+
+   version = drmGetVersion(fd);
+   if (!version) {
+      close(fd);
+      return v3dvk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
+                          "failed to query kernel driver version for device %s",
+                          path);
+   }
+
+   drmFreeVersion(version);
+
+   if (instance->debug_flags & V3D_DEBUG_STARTUP)
+      v3dvk_logi("Found compatible device '%s'.", path);
+
 
    device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
    device->instance = instance;
-
    assert(strlen(path) < ARRAY_SIZE(device->path));
-   snprintf(device->path, ARRAY_SIZE(device->path), "%s", path);
+   strncpy(device->path, path, ARRAY_SIZE(device->path));
+#if 0
+   if (instance->enabled_extensions.KHR_display) {
+      master_fd =
+         open(drm_device->nodes[DRM_NODE_PRIMARY], O_RDWR | O_CLOEXEC);
+      if (master_fd >= 0) {
+         /* TODO: free master_fd is accel is not working? */
+      }
+   }
+#endif
+
+   device->master_fd = master_fd;
+   device->local_fd = fd;
 
    if (!v3d_get_device_info(fd, &device->info, drmIoctl)) {
       result = vk_error(VK_ERROR_INCOMPATIBLE_DRIVER);
@@ -240,33 +277,11 @@ v3dvk_physical_device_init(struct v3dvk_physical_device *device,
    result = v3dvk_physical_device_init_uuids(device);
    if (result != VK_SUCCESS)
       goto fail;
-#if 0
-   if (instance->enabled_extensions.KHR_display) {
-#else
-   if (0) {
-#endif
-      master_fd = open(primary_path, O_RDWR | O_CLOEXEC);
-#if 0
-      if (master_fd >= 0) {
-         /* prod the device with a GETPARAM call which will fail if
-          * we don't have permission to even render on this device
-          */
-         if (anv_gem_get_param(master_fd, I915_PARAM_CHIPSET_ID) == 0) {
-            close(master_fd);
-            master_fd = -1;
-         }
-      }
-#endif
-   }
-
-   device->master_fd = master_fd;
 
    result = v3dvk_init_wsi(device);
    if (result != VK_SUCCESS) {
       goto fail;
    }
-
-   device->local_fd = fd;
 
    return VK_SUCCESS;
 

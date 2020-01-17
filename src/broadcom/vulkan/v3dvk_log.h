@@ -20,6 +20,10 @@ __v3dvk_finishme(const char *file, int line, const char *format, ...)
 
 void v3dvk_loge(const char *format, ...) V3DVK_PRINTFLIKE(1, 2);
 void v3dvk_loge_v(const char *format, va_list va);
+void
+v3dvk_logi(const char *format, ...) V3DVK_PRINTFLIKE(1, 2);
+void
+v3dvk_logi_v(const char *format, va_list va);
 
 /**
  * Print a FINISHME message, including its source location.
