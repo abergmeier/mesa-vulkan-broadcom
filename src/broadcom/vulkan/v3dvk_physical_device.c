@@ -558,6 +558,15 @@ void v3dvk_GetPhysicalDeviceFeatures2(
    }
 }
 
+static bool
+v3d_has_feature(struct v3dvk_physical_device *dev, enum drm_v3d_param feature)
+{
+        __u64 value = 0;
+        if (!v3d_get_param(dev->local_fd, drmIoctl, feature, &value))
+                return false;
+
+        return value;
+}
 
 #define MAX_PER_STAGE_DESCRIPTOR_UNIFORM_BUFFERS   12
 
@@ -963,7 +972,6 @@ void v3dvk_GetPhysicalDeviceProperties2(
 static const VkQueueFamilyProperties
 v3dvk_queue_family_properties = {
    .queueFlags = VK_QUEUE_GRAPHICS_BIT |
-                 VK_QUEUE_COMPUTE_BIT |
                  VK_QUEUE_TRANSFER_BIT,
    .queueCount = 1,
    .timestampValidBits = 36, /* XXX: Real value here */
@@ -975,10 +983,14 @@ void v3dvk_GetPhysicalDeviceQueueFamilyProperties(
     uint32_t*                                     pCount,
     VkQueueFamilyProperties*                      pQueueFamilyProperties)
 {
+   V3DVK_FROM_HANDLE(v3dvk_physical_device, physical_device, physicalDevice);
+
    VK_OUTARRAY_MAKE(out, pQueueFamilyProperties, pCount);
 
    vk_outarray_append(&out, p) {
       *p = v3dvk_queue_family_properties;
+      if (v3d_has_feature(physical_device, DRM_V3D_PARAM_SUPPORTS_CSD))
+        p->queueFlags |= VK_QUEUE_COMPUTE_BIT;
    }
 }
 
