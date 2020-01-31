@@ -18,9 +18,11 @@
 			.remark-slide-scaler {
 				z-index: 1;
 			}
-			.layer, .showable {
+			.layer, .round, .showable {
 				border: solid white 2px;
 				border-radius: 0.5em;
+			}
+			.layer, .showable {
 				filter: contrast(75%);
 				overflow: hidden;
 				transition: all 0.5s;
@@ -50,6 +52,10 @@
 			}
 			.bottom {
 				z-index: 25;
+			}
+			.layer_contained {
+				position: relative;
+				left: 2em;
 			}
 		</style>
 	</head>
@@ -105,6 +111,29 @@ name: agenda
 #horizon {
 	background:linear-gradient(0deg, rgb(190, 0, 0) 0%, rgb(255, 0, 0) 140%);
 }
+#android .round, #horizon .round {
+	position: relative;
+	top: -0.5em;
+	background-color: rgba(255, 255, 255, 0.5);
+}
+
+#android .round {
+	width: 80%;
+	left: 10%;
+}
+
+#horizon .round {
+	width: 50%;
+	left: 40%;
+}
+
+#horizon #horizon-nvn {
+	width: 80%;
+	left: 10%;
+	top: 0.2em;
+	background-color: rgba(255, 255, 255, 0.7);
+}
+
 </style>
 
 # ❔ Who
@@ -119,12 +148,18 @@ Work: Developer at <img src="Otto_GmbH_logo.svg" height="10px">
 
 2017 worked on:
 
-<div>
+<div class="layer_contained">
 	<img id="gofandroid" class="layer top first" src="GOF3-ManticoreScreen01-SpaceStation.jpg">
 	<img id="gofswitch" class="layer top second" src="Switch_Manticore_01.jpg">
 
-	<div id="android" class="layer middle first"><div>Android</div></div>
-	<div id="horizon" class="layer middle second"><div>Horizon (Nintendo Switch)</div></div>
+	<div id="android" class="layer middle first">
+		<div>Android</div>
+		<div class="round">Vulkan</div>
+	</div>
+	<div id="horizon" class="layer middle second">
+		<div>Horizon (Nintendo Switch)</div>
+		<div id="horizon-vk" class="round">Vulkan</div>
+		<div id="horizon-nvn" class="round">NVN</div>
 </div>
 
 ---
@@ -162,22 +197,23 @@ Expose a Vulkan interface for Raspberry Pi4 B
 - Release in 2019
 - *< insert complaint here >*
 - Should be capable to support Vulkan 1.1
+- CPU can do <a href="https://www.raspberrypi.org/forums/viewtopic.php?t=250730">64bit</a> (arm64/aarch64)
 - VideoCore VI 3D is <a href="https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2711/README.md">32bit</a>
 
 ---
 
 <style>
 #bcv {
-	background:linear-gradient(0deg, red 0%, lightgrey 100%);
+	background:linear-gradient(0deg, #FF4136 0%, rgba(255, 0, 0, 0.8) 100%);
 }
 #v3dvk {
-	background:linear-gradient(0deg, blue 0%, lightgrey 100%);
+	background:linear-gradient(0deg, #7FDBFF 0%, rgba(0, 0, 255, 0.8) 100%);
 }
 #v3dv {
-	background:linear-gradient(0deg, yellow 0%, lightgrey 100%);
+	background:linear-gradient(0deg, #FFDC00 0%, rgba(0, 255, 255, 0.8) 100%);
 }
 #rpi-vk {
-	background:linear-gradient(0deg, lightcoral 0%, lightgrey 100%);
+	background:linear-gradient(0deg, #F012BE 0%, rgba(127, 255, 255, 0.8) 100%);
 }
 .vcs {
 	border-style: dashed;
@@ -185,17 +221,20 @@ Expose a Vulkan interface for Raspberry Pi4 B
 	background-color: rgba(var(--color), 0.5);
 }
 #vc4 {
-	--color: green;
+	--color: rgb(255,140,0);
 	border-color: white;
+	background: linear-gradient(0deg, rgb(255,140,0) 0%, rgba(255,140,0,0) 100%);
 }
+
 #vc6 {
-	--color: pink;
+	--color: rgb(255,165,0);
 	border-color: white;
+	background: linear-gradient(0deg, rgb(255,165,0) 0%, rgba(255,165,0,0) 100%);
 }
 #drivers {
 	align-items: center;
 	display: grid;
-	grid-template-columns: 2em 2em repeat(4, 20%);
+	grid-template-columns: repeat(4, 20%) 2em;
 	grid-template-rows: 2em repeat(2, 7em);
 }
 #drivers .top {
@@ -207,6 +246,10 @@ Expose a Vulkan interface for Raspberry Pi4 B
 }
 #drivers .layer *, #drivers .layer:hover * {
 	transition: all 0.5s;
+}
+#drivers .layer {
+	width: 100%;
+	height: 100%;
 }
 #drivers .layer:hover span {
 	visibility: visible;
@@ -228,23 +271,22 @@ Expose a Vulkan interface for Raspberry Pi4 B
 # 🌍 World of Raspberry Pi Vulkan drivers
 
 <div id="drivers">
-	<label style="grid-row: 2 / 4; grid-column: 1; transform: rotate(-90deg); padding: 0px;">Drivers</label>
-	<label style="grid-row: 2; grid-column: 2; transform: rotate(-90deg);">Userspace</label>
-	<label style="grid-row: 3; grid-column: 2; transform: rotate(-90deg);">Kernel</label>
-	<div class="subgrid" style="grid-column: 3 / 7;">
+	<div class="subgrid" style="grid-column: 1 / 5;">
 		<div id="vc6" class="subgrid vcs" style="grid-column: 1 / 6;">
 			<label style="grid-row: 1; grid-column: 1 / 4"><h2>VideoCore 6</h2></label>
-			<div id="bcv" class="layer top" style="grid-column: 1;">🌫️<h3>Broadcom</h3><span>Evidence: <a href="https://www.khronos.org/conformance/adopters/conformant-products/vulkan#submission_344">khronos.org/...</a></span></div>
-			<div id="v3dvk" class="layer top" style="grid-column: 2;">🆕<h3>v3dvk</h3><span>Developed by Andreas Bergmeier<br>based on Mesa3D</span></div>
-			<div id="v3dv" class="layer top" style="grid-column: 3;">🛑<h3>v3dv</h3><span>Started by Eric Anholt: <a href="https://gitlab.freedesktop.org/anholt/mesa/commits/v3dv">gitlab.freedesktop.org/...</a><br>based on Mesa3D</span></div>
-			<div id="kernel-v3d" class="layer bottom" style="grid-column: 1 / 4;"><h3>V3D</h3><span>Maintained by Eric Anholt: <a href="https://github.com/torvalds/linux/tree/master/drivers/gpu/drm/v3d">github.com/...</a></span></div>
+			<div style="grid-column: 1;"><div id="bcv" class="layer top">🌫️<h3>Broadcom</h3><span>Evidence: <a href="https://www.khronos.org/conformance/adopters/conformant-products/vulkan#submission_344">khronos.org/...</a></span></div></div>
+			<div style="grid-column: 2;"><div id="v3dvk" class="layer top">🆕<h3>v3dvk</h3><span>Developed by Andreas Bergmeier<br>based on Mesa3D</span></div></div>
+			<div style="grid-column: 3;"><div id="v3dv" class="layer top">🛑<h3>v3dv</h3><span>Started by Eric Anholt: <a href="https://gitlab.freedesktop.org/anholt/mesa/commits/v3dv">gitlab.freedesktop.org/...</a><br>based on Mesa3D</span></div></div>
+			<div style="grid-column: 1 / 4;"><div id="kernel-v3d" class="layer bottom"><h3>V3D</h3><span>Maintained by Eric Anholt: <a href="https://github.com/torvalds/linux/tree/master/drivers/gpu/drm/v3d">github.com/...</a></span></div></div>
 		</div>
 		<div id="vc4" class="subgrid vcs" style="grid-column: 6 / 7;">
 			<label style="grid-row: 1; grid-column: 6"><h2>VideoCore 4</h2></label>
-			<div id="rpi-vk" class="layer top" style="grid-column: 1;">➰<h3>rpi-vk</h3><span>Developed: <a href="https://github.com/Yours3lf/rpi-vk-driver">github.com/...</a><br>outside of Mesa3D</span></div>
-			<div id="kernel-vc4" class="layer bottom" style="grid-column: 1;"><h3>VC4</h3></div>
+			<div style="grid-column: 1;"><div id="rpi-vk" class="layer top">➰<h3>rpi-vk</h3><span>Developed: <a href="https://github.com/Yours3lf/rpi-vk-driver">github.com/...</a><br>outside of Mesa3D</span></div></div>
+			<div style="grid-column: 1;"><div id="kernel-vc4" class="layer bottom"><h3>VC4</h3></div></div>
 		</div>
 	</div>
+	<label style="grid-row: 2; grid-column: 6; transform: rotate(-90deg);">Userspace</label>
+	<label style="grid-row: 3; grid-column: 6; transform: rotate(-90deg);">Kernel</label>
 </div>
 
 ---
@@ -275,7 +317,7 @@ Expose a Vulkan interface for Raspberry Pi4 B
 
 ## Culture
 
-- Is Mesa a cult?
+- The mesa cult
 
   - Feels pretty closed off to me
   - Seems to get better
