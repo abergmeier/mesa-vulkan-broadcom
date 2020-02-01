@@ -86,7 +86,7 @@ name: agenda
 
 1. ℹ️ Who, What and Why
 1. Raspberry Pi 4
-1. Mesa
+1. Mesa3D
 1. Gallium V3D
 1. V3DVK
 1. ♾️ Future
@@ -168,7 +168,7 @@ Work: Developer at <img src="Otto_GmbH_logo.svg" height="10px">
 
 Expose a Vulkan interface for Raspberry Pi4 B
 
-- Implement a (userspace) C ABI using Mesa
+- Implement a (userspace) C ABI using Mesa3D
 - Interact with DRM V3D (there are no open hardware specs)
 - Use as much Gallium V3D code (for **V**ideo**C**ore **6**) as possible
 
@@ -199,6 +199,7 @@ Expose a Vulkan interface for Raspberry Pi4 B
 - Should be capable to support Vulkan 1.1
 - CPU can do <a href="https://www.raspberrypi.org/forums/viewtopic.php?t=250730">64bit</a> (arm64/aarch64)
 - VideoCore VI 3D is <a href="https://www.raspberrypi.org/documentation/hardware/raspberrypi/bcm2711/README.md">32bit</a>
+- Tile renderer: Binner → Renderer → Tile
 
 ---
 
@@ -291,7 +292,7 @@ Expose a Vulkan interface for Raspberry Pi4 B
 
 ---
 
-# 📦 Mesa
+# 📦 Mesa3D
 
 ## Top level view
 
@@ -305,15 +306,24 @@ Expose a Vulkan interface for Raspberry Pi4 B
 - 🙁 Hard to use base libraries without including Gallium
 
   Gets slowly cleaned up
+
+---
+
+# 📦 Mesa3D
+
+## Vulkan infrastructure
+
 - 🤔 Vulkan drivers have monolithic `myv_private.h` header
 
   ⇒ iterating slow
 
   ⇒ finding symbols hard
 
+- Formats are now moving to base infrastructure (`util_format_layout`)
+
 ---
 
-# 📦 Mesa
+# 📦 Mesa3D
 
 ## Culture
 
@@ -324,7 +334,7 @@ Expose a Vulkan interface for Raspberry Pi4 B
 
 ---
 
-# 📦 Mesa
+# 📦 Mesa3D
 
 ## Build systems
 
@@ -344,6 +354,10 @@ Expose a Vulkan interface for Raspberry Pi4 B
 - Uses variant generation: XML ⇨ Python ⇨ Headers & Compilation Units
 - Documents problems <div><a href="https://gitlab.freedesktop.org/mesa/mesa/blob/master/src/broadcom/cle/v3d_packet_v33.xml">here</a>,<br>
   <a href="">here</a><br>and</div>
+
+## ?
+
+- Is compute already supported?
 
 ---
 
@@ -460,6 +474,7 @@ Expose a Vulkan interface for Raspberry Pi4 B
 
 # RPi
 
+- Team up with Igalia if possible
 - More coding
 
 # Vulkan CTS
